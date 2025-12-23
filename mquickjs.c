@@ -822,6 +822,9 @@ static void js_vprintf(JSWriteFunc *write_func, void *opaque, const char *fmt, v
                         break;
                     }
                 }
+                /* remove the trailing '\n' if any (used in error output) */
+                if ((flags & PF_ALT_FORM) && len > 0 && buf[len - 1] == '\n')
+                    len--;
                 flags &= ~PF_ZERO_PAD;
             }
             break;
@@ -2124,32 +2127,12 @@ const char *JS_ToCString(JSContext *ctx, JSValue val, JSCStringBuf *buf)
     return JS_ToCStringLen(ctx, NULL, val, buf);
 }
 
-char *JS_GetErrorStr(JSContext *ctx, char *buf, size_t buf_size)
+JSValue JS_GetException(JSContext *ctx)
 {
-    const char *str;
     JSValue obj;
-    JSObject *p;
-    JSCStringBuf str_buf;
-    JSGCRef obj_ref;
-    
     obj = ctx->current_exception;
-    JS_PUSH_VALUE(ctx, obj);
-    str = JS_ToCString(ctx, obj, &str_buf);
-    JS_POP_VALUE(ctx, obj);
-    if (!str)
-        str = "";
-    pstrcpy(buf, buf_size, str);
-    if (JS_IsError(ctx, obj)) {
-        p = JS_VALUE_TO_PTR(obj);
-        if (p->u.error.stack != JS_NULL) {
-            str = JS_ToCString(ctx, p->u.error.stack, &str_buf);
-            if (str) {
-                pstrcat(buf, buf_size, "\n");
-                pstrcat(buf, buf_size, str);
-            }
-        }
-    }
-    return buf;
+    ctx->current_exception = JS_UNDEFINED;
+    return obj;
 }
 
 static JSValue JS_ToStringCheckObject(JSContext *ctx, JSValue val)
@@ -6659,6 +6642,31 @@ static void js_dump_float64(JSContext *ctx, double d)
 
 static void dump_regexp(JSContext *ctx, JSObject *p);
 
+static void js_dump_error(JSContext *ctx, JSObject *p)
+{
+    JSObject *p1;
+    JSProperty *pr;
+    JSValue name;
+    
+    /* find the error name without side effect */
+    p1 = p;
+    if (p->proto != JS_NULL) 
+        p1 = JS_VALUE_TO_PTR(p->proto);
+    pr = find_own_property(ctx, p1, js_get_atom(ctx, JS_ATOM_name));
+    if (!pr || !JS_IsString(ctx, pr->value))
+        name = js_get_atom(ctx, JS_ATOM_Error);
+    else
+        name = pr->value;
+    js_printf(ctx, "%" JSValue_PRI, name);
+    if (p->u.error.message != JS_NULL) {
+        js_printf(ctx, ": %" JSValue_PRI, p->u.error.message);
+    }
+    if (p->u.error.stack != JS_NULL) {
+        /* remove the trailing '\n' if any */
+        js_printf(ctx, "\n%#" JSValue_PRI, p->u.error.stack);
+    }
+}
+
 static void js_dump_object(JSContext *ctx, JSObject *p, int flags)
 {
     if (flags & JS_DUMP_LONG) {
@@ -6675,6 +6683,9 @@ static void js_dump_object(JSContext *ctx, JSObject *p, int flags)
             js_printf(ctx, "function ");
             JS_PrintValueF(ctx, reloc_c_func_name(ctx, ctx->c_function_table[p->u.cfunc.idx].name), JS_DUMP_NOQUOTE);
             js_printf(ctx, "()");
+            break;
+        case JS_CLASS_ERROR:
+            js_dump_error(ctx, p);
             break;
         case JS_CLASS_REGEXP:
             dump_regexp(ctx, p);
@@ -6756,12 +6767,9 @@ static void js_dump_object(JSContext *ctx, JSObject *p, int flags)
                         JSValue class_name = js_find_class_name(ctx, p->class_id);
                         if (!JS_IsNull(class_name))
                             JS_PrintValueF(ctx, class_name, JS_DUMP_NOQUOTE);
+                        js_putchar(ctx, ' ');
                     }
                     js_printf(ctx, "{ ");
-                    if (p->class_id == JS_CLASS_ERROR) {
-                        js_printf(ctx, "message: %"JSValue_PRI"", p->u.error.message);
-                        is_first = FALSE;
-                    }
                 }
                 for(i = 0, j = 0; j < prop_count; i++) {
                     pr = (JSProperty *)&arr->arr[2 + (hash_mask + 1) + 3 * i];
@@ -6828,15 +6836,37 @@ static void dump_string(JSContext *ctx, int sep, const uint8_t *buf, size_t len,
     p_end = buf + len;
     while (p < p_end) {
         c = utf8_get(p, &clen);
-        p += clen;
-        if (use_quote && (c == sep || c == '\\')) {
+        switch(c) {
+        case '\t':
+            c = 't';
+            goto quote;
+        case '\r':
+            c = 'r';
+            goto quote;
+        case '\n':
+            c = 'n';
+            goto quote;
+        case '\b':
+            c = 'b';
+            goto quote;
+        case '\f':
+            c = 'f';
+            goto quote;
+        case '\"':
+        case '\\':
+        quote:
             js_putchar(ctx, '\\');
             js_putchar(ctx, c);
-        } else if (c >= ' ' && c <= 126) {
-            js_putchar(ctx, c);
-        } else {
-            js_printf(ctx, "\\u{%x}", c);
+            break;
+        default:
+            if (c < 32 || (c >= 0xd800 && c < 0xe000)) {
+                js_printf(ctx, "\\u%04x", c);
+            } else {
+                ctx->write_func(ctx->opaque, p, clen);
+            }
+            break;
         }
+        p += clen;
     }
     if (use_quote)
         js_putchar(ctx, sep);
@@ -13780,8 +13810,10 @@ JSValue js_object_hasOwnProperty(JSContext *ctx, JSValue *this_val,
     JSValue prop;
     int array_len, idx;
     
+    if (JS_IsNull(*this_val) || JS_IsUndefined(*this_val))
+        return JS_ThrowTypeError(ctx, "cannot convert to object");
     if (!JS_IsObject(ctx, *this_val))
-        return JS_ThrowTypeError(ctx, "not an object");
+        return JS_FALSE; /* XXX: could improve for strings */
     prop = JS_ToPropertyKey(ctx, argv[0]);
     p = JS_VALUE_TO_PTR(*this_val);
     if (p->class_id == JS_CLASS_ARRAY) {
