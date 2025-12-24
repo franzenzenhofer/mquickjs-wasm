@@ -14,7 +14,7 @@
 const Benchmark = (function() {
     'use strict';
 
-    const BUILD_VERSION = '20241224_v10';
+    const BUILD_VERSION = '20251224_v13';
 
     // Benchmark test suite - all code is predefined, not user input
     const benchmarkSuite = {
@@ -35,9 +35,9 @@ const Benchmark = (function() {
                 code: 'function m(s){var r=0;for(var y=0;y<s;y++){for(var x=0;x<s;x++){var cx=(x-s/2)*4.0/s;var cy=(y-s/2)*4.0/s;var zx=0,zy=0;var i=0;while(zx*zx+zy*zy<4&&i<100){var t=zx*zx-zy*zy+cx;zy=2*zx*zy+cy;zx=t;i++;}r+=i;}}r;}m(80);'
             },
             {
-                name: 'N-Queens(11)',
-                description: 'Backtracking recursion',
-                code: 'function q(n){var s=0;var c=[],d1=[],d2=[];function solve(r){if(r===n){s++;return;}for(var col=0;col<n;col++){if(!c[col]&&!d1[r-col+n]&&!d2[r+col]){c[col]=d1[r-col+n]=d2[r+col]=true;solve(r+1);c[col]=d1[r-col+n]=d2[r+col]=false;}}}solve(0);s;}q(11);'
+                name: 'Loop(1M)',
+                description: 'Simple loop iterations',
+                code: 'var sum=0;for(var i=0;i<1000000;i++)sum+=i%10;sum;'
             },
             {
                 name: 'StringOps(50K)',
@@ -79,6 +79,8 @@ const Benchmark = (function() {
 
     function formatTime(ms) {
         if (ms >= 1000) return (ms / 1000).toFixed(2) + 's';
+        if (ms < 1) return ms.toFixed(2) + 'ms';
+        if (ms < 10) return ms.toFixed(1) + 'ms';
         return Math.round(ms) + 'ms';
     }
 
@@ -107,26 +109,35 @@ const Benchmark = (function() {
         return { best: times[0], median: times[1], worst: times[2] };
     }
 
+    function log(msg) {
+        console.log('[Benchmark] ' + msg);
+        if (els.consoleOutput) {
+            const line = document.createElement('div');
+            line.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+            els.consoleOutput.appendChild(line);
+            els.consoleOutput.scrollTop = els.consoleOutput.scrollHeight;
+        }
+    }
+
     function updateProgress(text, percent, status) {
         els.progressText.textContent = text;
         els.progressBar.style.width = percent + '%';
         if (status) els.progressStatus.textContent = status;
+        log(text + (status ? ' - ' + status : ''));
     }
 
     // Safe DOM-based chart rendering (no innerHTML)
     function renderChart(results) {
-        const maxTime = Math.max.apply(null, results.map(function(r) {
-            return Math.max(r.browser.median, r.wasm.median);
-        }));
-
         // Clear existing content
         while (els.chartContainer.firstChild) {
             els.chartContainer.removeChild(els.chartContainer.firstChild);
         }
 
         results.forEach(function(r) {
-            const browserWidth = (r.browser.median / maxTime * 100).toFixed(1);
-            const wasmWidth = (r.wasm.median / maxTime * 100).toFixed(1);
+            // Scale bars relative to each other within this test (larger = 100%)
+            const localMax = Math.max(r.browser.median, r.wasm.median);
+            const browserWidth = localMax > 0 ? (r.browser.median / localMax * 100).toFixed(1) : 0;
+            const wasmWidth = localMax > 0 ? (r.wasm.median / localMax * 100).toFixed(1) : 0;
             const ratio = (r.wasm.median / r.browser.median).toFixed(1);
 
             const row = document.createElement('div');
@@ -139,18 +150,32 @@ const Benchmark = (function() {
             const barsDiv = document.createElement('div');
             barsDiv.className = 'chart-bars';
 
+            // Browser bar row (bar + label outside)
+            const browserRow = document.createElement('div');
+            browserRow.className = 'chart-bar-row';
             const browserBar = document.createElement('div');
             browserBar.className = 'chart-bar browser';
             browserBar.style.width = browserWidth + '%';
-            browserBar.textContent = formatTime(r.browser.median);
+            const browserLabel = document.createElement('span');
+            browserLabel.className = 'chart-bar-label browser';
+            browserLabel.textContent = formatTime(r.browser.median);
+            browserRow.appendChild(browserBar);
+            browserRow.appendChild(browserLabel);
 
+            // WASM bar row (bar + label outside)
+            const wasmRow = document.createElement('div');
+            wasmRow.className = 'chart-bar-row';
             const wasmBar = document.createElement('div');
             wasmBar.className = 'chart-bar wasm';
             wasmBar.style.width = wasmWidth + '%';
-            wasmBar.textContent = formatTime(r.wasm.median);
+            const wasmLabel = document.createElement('span');
+            wasmLabel.className = 'chart-bar-label wasm';
+            wasmLabel.textContent = formatTime(r.wasm.median);
+            wasmRow.appendChild(wasmBar);
+            wasmRow.appendChild(wasmLabel);
 
-            barsDiv.appendChild(browserBar);
-            barsDiv.appendChild(wasmBar);
+            barsDiv.appendChild(browserRow);
+            barsDiv.appendChild(wasmRow);
 
             const ratioSpan = document.createElement('span');
             ratioSpan.className = 'ratio';
@@ -308,6 +333,7 @@ const Benchmark = (function() {
         els.ratioBanner = document.getElementById('ratio-banner');
         els.chartContainer = document.getElementById('chart-container');
         els.resultsTbody = document.getElementById('results-tbody');
+        els.consoleOutput = document.getElementById('console-output');
 
         document.getElementById('browser-name').textContent = detectBrowser();
         document.getElementById('version-display').textContent = BUILD_VERSION;

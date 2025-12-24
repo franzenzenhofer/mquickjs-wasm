@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="version" content="20241224_v10">
+    <meta name="version" content="20251224_v13">
     <title>WASM vs Browser Benchmark - MicroQuickJS</title>
 
     <!-- SEO -->
@@ -323,17 +323,27 @@
             gap: 4px;
         }
 
-        .chart-bar {
-            height: 16px;
-            border-radius: 3px;
+        .chart-bar-row {
             display: flex;
             align-items: center;
-            padding-left: 8px;
-            font-size: 0.7rem;
-            color: white;
-            min-width: 50px;
+            gap: 8px;
+        }
+
+        .chart-bar {
+            height: 18px;
+            border-radius: 3px;
+            min-width: 4px;
             transition: width 0.5s ease-out;
         }
+
+        .chart-bar-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .chart-bar-label.browser { color: var(--accent); }
+        .chart-bar-label.wasm { color: var(--success); }
 
         .chart-bar.browser { background: var(--accent); }
         .chart-bar.wasm { background: var(--success); }
@@ -409,6 +419,38 @@
             color: var(--text-primary);
         }
 
+        /* Console */
+        .console-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+        }
+
+        .console-section h3 {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .console-output {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.5rem;
+            height: 120px;
+            overflow-y: auto;
+            font-family: 'SF Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .console-output div {
+            padding: 2px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
         /* Footer */
         footer {
             text-align: center;
@@ -463,7 +505,7 @@
             <div class="logo">
                 <h1>MicroQuickJS</h1>
                 <span class="badge badge-wasm">WASM</span>
-                <span class="badge badge-version" id="header-version">v10</span>
+                <span class="badge badge-version" id="header-version">v13</span>
             </div>
             <div class="header-links">
                 <a href="index.html" class="nav-link">IDE</a>
@@ -546,6 +588,12 @@
                     <li><strong>Engine size</strong> - MicroQuickJS: 168KB, V8: ~10MB, SpiderMonkey: ~5MB</li>
                 </ul>
             </div>
+
+            <!-- Console Log -->
+            <div class="console-section">
+                <h3>Console Log</h3>
+                <div id="console-output" class="console-output"></div>
+            </div>
         </section>
     </main>
 
@@ -572,6 +620,6 @@
     </script>
 
     <!-- Benchmark Runner -->
-    <script src="benchmark.js?v=20241224_v10"></script>
+    <script src="benchmark.js?v=20251224_v13"></script>
 </body>
 </html>
