@@ -1,23 +1,31 @@
 # MicroQuickJS WASM
 
+![Version](https://img.shields.io/badge/version-v10-green) ![Built by](https://img.shields.io/badge/built%20by-Claude%20Code-purple) ![WASM](https://img.shields.io/badge/WASM-168KB-blue)
+
 **A WebAssembly port of MicroQuickJS - Run a minimal JavaScript engine in your browser with Canvas API support.**
 
 ---
 
 ## 100% Built by Claude Code
 
-This entire WASM port, IDE, Canvas API bridge, and deployment was created by [Claude Code](https://claude.ai/code) with **zero human code review or modification**.
+This entire WASM port, IDE, Canvas API bridge, benchmark page, and deployment was created by [Claude Code](https://claude.ai/code) with **zero human code review or modification**.
 
 ---
 
 ## Live Demo
 
-**[mquickjs-claude-code.franzai.com](https://mquickjs-claude-code.franzai.com)**
+| Page | Description |
+|------|-------------|
+| **[IDE](https://mquickjs-claude-code.franzai.com)** | Full JavaScript IDE with Canvas API |
+| **[Benchmark](https://mquickjs-claude-code.franzai.com/benchmark.html)** | WASM vs Browser JS performance comparison |
 
-A full JavaScript IDE powered by MicroQuickJS running in WebAssembly with:
+**Current Version:** v10 (2024-12-24)
+
+### Features
 - **CodeMirror Editor** with syntax highlighting
 - **Canvas API** for graphics and games
 - **Console output** with timestamps
+- **Benchmark suite** - Compare WASM vs native JS
 - **Mobile responsive** design
 
 ---

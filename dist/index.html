@@ -131,16 +131,17 @@
             border: 1px solid var(--border);
         }
 
-        /* Main IDE Layout */
+        /* Main IDE Layout - Fixed height, proper mini-IDE */
         .ide-container {
             max-width: 1600px;
             margin: 0 auto;
             padding: 1rem;
             display: grid;
             grid-template-columns: 1fr 400px;
-            grid-template-rows: auto 1fr auto;
+            grid-template-rows: auto 1fr auto auto;
             gap: 1rem;
-            min-height: calc(100vh - 120px);
+            height: calc(100vh - 60px);
+            overflow: hidden;
         }
 
         /* Info Bar */
@@ -192,7 +193,7 @@
             text-transform: uppercase;
         }
 
-        /* Editor Panel */
+        /* Editor Panel - Fixed height with internal scrolling */
         .editor-panel {
             display: flex;
             flex-direction: column;
@@ -200,6 +201,7 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             overflow: hidden;
+            min-height: 0; /* Critical for flexbox/grid children to shrink */
         }
 
         .panel-header {
@@ -246,6 +248,8 @@
         .editor-wrapper {
             flex: 1;
             overflow: hidden;
+            min-height: 0; /* Critical for nested flex containers */
+            position: relative;
         }
 
         .CodeMirror {
@@ -260,14 +264,16 @@
             border-right: 1px solid var(--border);
         }
 
-        /* Right Panel - Output & Canvas */
+        /* Right Panel - Output & Canvas with fixed height */
         .right-panel {
             display: flex;
             flex-direction: column;
             gap: 1rem;
+            min-height: 0; /* Critical for grid children to respect container */
+            overflow: hidden;
         }
 
-        /* Console */
+        /* Console - Resizable with internal scrolling */
         .console-panel {
             flex: 1;
             display: flex;
@@ -276,15 +282,18 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             overflow: hidden;
-            min-height: 200px;
+            min-height: 120px;
+            max-height: 50vh;
+            resize: vertical;
         }
 
         .console-output {
             flex: 1;
-            overflow-y: auto;
+            overflow: auto;
             font-family: 'JetBrains Mono', 'SF Mono', Monaco, monospace;
-            font-size: 12px;
+            font-size: 11px;
             background: #1a1a1a;
+            white-space: pre;
         }
 
         .console-line {
@@ -298,7 +307,7 @@
         .console-line:hover { background: rgba(255,255,255,0.02); }
         .console-line .timestamp { color: #666; font-size: 0.7rem; flex-shrink: 0; }
         .console-line .prefix { flex-shrink: 0; width: 16px; }
-        .console-line .content { white-space: pre-wrap; word-break: break-word; flex: 1; }
+        .console-line .content { white-space: pre; flex: 1; }
 
         .console-line.log .prefix { color: var(--text-secondary); }
         .console-line.log .prefix::before { content: "›"; }
@@ -312,12 +321,13 @@
         .console-line.warn .prefix { color: var(--warning); }
         .console-line.warn .prefix::before { content: "⚠"; }
 
-        /* Canvas Panel */
+        /* Canvas Panel - Flexible sizing */
         .canvas-panel {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 8px;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .canvas-container {
@@ -492,24 +502,27 @@
         @media (max-width: 1000px) {
             .ide-container {
                 grid-template-columns: 1fr;
-                grid-template-rows: auto auto auto auto;
+                grid-template-rows: auto minmax(300px, 1fr) auto auto auto;
+                height: auto;
+                min-height: calc(100vh - 60px);
             }
 
-            .editor-panel { min-height: 350px; }
-            .right-panel { flex-direction: row; flex-wrap: wrap; }
-            .console-panel { flex: 1; min-width: 250px; }
+            .editor-panel { min-height: 300px; max-height: 50vh; }
+            .right-panel { flex-direction: row; flex-wrap: wrap; overflow: visible; }
+            .console-panel { flex: 1; min-width: 250px; max-height: 300px; }
             .canvas-panel { flex: 1; min-width: 250px; }
         }
 
         @media (max-width: 600px) {
             header { padding: 0.5rem 0.75rem; }
             .logo h1 { font-size: 1rem; }
-            .ide-container { padding: 0.75rem; }
+            .ide-container { padding: 0.75rem; height: auto; }
             .info-bar { flex-direction: column; align-items: flex-start; }
             .stats-bar { width: 100%; justify-content: space-around; }
             .controls-bar { flex-direction: column; }
             .controls-bar button { width: 100%; justify-content: center; }
             .right-panel { flex-direction: column; }
+            .editor-panel { max-height: 40vh; }
         }
 
         /* Scrollbar */
@@ -532,8 +545,11 @@
                 <span class="badge badge-wasm">WASM</span>
                 <span class="badge badge-canvas">Canvas</span>
                 <span class="badge badge-ai">AI Built</span>
+                <span class="badge" style="background:var(--success);color:var(--bg-primary)">v10</span>
             </div>
             <div class="header-links">
+                <a href="index.html" style="background:var(--accent);color:var(--bg-primary);font-weight:600;">IDE</a>
+                <a href="benchmark.html" style="background:linear-gradient(135deg,#f85149,#d29922);color:white;font-weight:600;">Benchmark</a>
                 <a href="https://github.com/franzenzenhofer/mquickjs-wasm" target="_blank" class="github-star">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
                     GitHub
@@ -662,7 +678,7 @@
     <!-- MicroQuickJS WASM Engine (with cache breaker) -->
     <script>
         (function() {
-            var BUILD_VERSION = '20241224_v4';
+            var BUILD_VERSION = '20241224_v10';
             var s = document.createElement('script');
             s.src = 'mquickjs.js?v=' + BUILD_VERSION;
             s.onload = function() { window.wasmLoaded = true; };
@@ -671,9 +687,9 @@
     </script>
 
     <!-- Canvas Bridge Module (separate, well-documented) -->
-    <script src="canvas-bridge.js?v=20241224_v4"></script>
+    <script src="canvas-bridge.js?v=20241224_v10"></script>
 
     <!-- IDE Application (separate, well-documented) -->
-    <script src="ide.js?v=20241224_v4"></script>
+    <script src="ide.js?v=20241224_v10"></script>
 </body>
 </html>

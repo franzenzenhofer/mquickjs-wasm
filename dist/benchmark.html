@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="version" content="20241224_v10">
+    <title>WASM vs Browser Benchmark - MicroQuickJS</title>
+
+    <!-- SEO -->
+    <meta name="description" content="Compare MicroQuickJS WASM performance against native browser JavaScript. Run benchmarks and see real-time results.">
+    <link rel="canonical" href="https://mquickjs-claude-code.franzai.com/benchmark.html">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --success: #3fb950;
+            --warning: #d29922;
+            --error: #f85149;
+            --border: #30363d;
+            --purple: #a371f7;
+            --cyan: #56d4dd;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo h1 { font-size: 1.2rem; font-weight: 600; }
+
+        .badge {
+            font-size: 0.6rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-wasm { background: var(--accent); color: var(--bg-primary); }
+        .badge-version { background: var(--success); color: var(--bg-primary); }
+
+        .header-links {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .header-links a:hover { color: var(--accent); background: var(--bg-tertiary); }
+
+        .nav-link {
+            background: var(--bg-tertiary) !important;
+            border: 1px solid var(--border);
+        }
+
+        .nav-link.active {
+            background: var(--accent) !important;
+            color: var(--bg-primary) !important;
+            border-color: var(--accent);
+        }
+
+        /* Main Content */
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(163, 113, 247, 0.1));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .hero h2 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .hero p {
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 1rem;
+        }
+
+        .version-info {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .version-info span {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        button {
+            font-family: inherit;
+            font-size: 1rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.15s;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            color: white;
+            border: none;
+            font-size: 1.1rem;
+            padding: 1rem 2rem;
+        }
+
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); }
+        .btn-secondary:hover:not(:disabled) { background: var(--border); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Progress */
+        .progress-section {
+            display: none;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .progress-section.active { display: block; }
+
+        .progress-bar-container {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .progress-status {
+            font-family: 'SF Mono', monospace;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Results */
+        .results-section {
+            display: none;
+            margin: 2rem 0;
+        }
+
+        .results-section.active { display: block; }
+
+        .results-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .result-card {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .result-card.browser { border-color: var(--accent); }
+        .result-card.wasm { border-color: var(--success); }
+
+        .result-card h3 {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+        }
+
+        .result-card .time {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .result-card.browser .time { color: var(--accent); }
+        .result-card.wasm .time { color: var(--success); }
+
+        .result-card .engine {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .ratio-banner {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .ratio-banner strong { color: var(--accent); }
+
+        /* Chart */
+        .chart-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-section h3 {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .chart-row {
+            display: grid;
+            grid-template-columns: 120px 1fr 100px;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .chart-row .test-name {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .chart-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .chart-bar {
+            height: 16px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+            font-size: 0.7rem;
+            color: white;
+            min-width: 50px;
+            transition: width 0.5s ease-out;
+        }
+
+        .chart-bar.browser { background: var(--accent); }
+        .chart-bar.wasm { background: var(--success); }
+
+        .chart-row .ratio {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+
+        /* Table */
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+        }
+
+        .results-table th, .results-table td {
+            padding: 0.75rem;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .results-table th {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+
+        .results-table th:first-child, .results-table td:first-child {
+            text-align: left;
+        }
+
+        .results-table td.browser { color: var(--accent); }
+        .results-table td.wasm { color: var(--success); }
+
+        /* Explanation */
+        .explanation {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--text-secondary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .explanation h3 {
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .explanation ul {
+            list-style: none;
+            margin: 0;
+        }
+
+        .explanation li {
+            padding: 0.4rem 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .explanation li:last-child {
+            border-bottom: none;
+        }
+
+        .explanation li strong {
+            color: var(--text-primary);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+
+        .footer-notice {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(163, 113, 247, 0.1);
+            border: 1px solid rgba(163, 113, 247, 0.3);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .footer-notice strong { color: var(--purple); }
+
+        .footer-links {
+            margin-top: 0.75rem;
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+
+        .footer-links a:hover { color: var(--accent); }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .hero h2 { font-size: 1.4rem; }
+            .results-summary { grid-template-columns: 1fr; }
+            .chart-row { grid-template-columns: 80px 1fr 60px; font-size: 0.75rem; }
+            .btn-primary { width: 100%; justify-content: center; }
+            .version-info { flex-direction: column; gap: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <h1>MicroQuickJS</h1>
+                <span class="badge badge-wasm">WASM</span>
+                <span class="badge badge-version" id="header-version">v10</span>
+            </div>
+            <div class="header-links">
+                <a href="index.html" class="nav-link">IDE</a>
+                <a href="benchmark.html" class="nav-link active">Benchmark</a>
+                <a href="https://github.com/franzenzenhofer/mquickjs-wasm" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h2>WASM vs Browser JavaScript Benchmark</h2>
+            <p>Compare MicroQuickJS WASM interpreter performance against your browser's native JIT-compiled JavaScript engine.</p>
+            <div class="version-info">
+                <span><strong>Version:</strong> <span id="version-display">20241224_v10</span></span>
+                <span><strong>Engine:</strong> 168KB WASM</span>
+                <span><strong>Browser:</strong> <span id="browser-name">Detecting...</span></span>
+            </div>
+        </section>
+
+        <div class="btn-group">
+            <button id="run-full-btn" class="btn-primary" disabled>
+                <span>Loading WASM...</span>
+            </button>
+            <button id="run-quick-btn" class="btn-secondary" disabled>
+                Quick Test (~5s)
+            </button>
+        </div>
+
+        <section id="progress-section" class="progress-section">
+            <div class="progress-text" id="progress-text">Preparing benchmarks...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="progress-status" id="progress-status"></div>
+        </section>
+
+        <section id="results-section" class="results-section">
+            <div class="results-summary">
+                <div class="result-card browser">
+                    <h3>Browser JavaScript</h3>
+                    <div class="time" id="browser-total">-</div>
+                    <div class="engine" id="browser-engine">V8 / SpiderMonkey / JSC</div>
+                </div>
+                <div class="result-card wasm">
+                    <h3>WASM (MicroQuickJS)</h3>
+                    <div class="time" id="wasm-total">-</div>
+                    <div class="engine">Interpreter, 168KB</div>
+                </div>
+            </div>
+
+            <div class="ratio-banner" id="ratio-banner">
+                Calculating ratio...
+            </div>
+
+            <div class="chart-section">
+                <h3>Per-Test Comparison</h3>
+                <div id="chart-container"></div>
+            </div>
+
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        <th>Browser (ms)</th>
+                        <th>WASM (ms)</th>
+                        <th>Ratio</th>
+                    </tr>
+                </thead>
+                <tbody id="results-tbody"></tbody>
+            </table>
+
+            <div class="explanation">
+                <h3>Performance Factors</h3>
+                <ul>
+                    <li><strong>Interpreter vs JIT</strong> - MicroQuickJS interprets bytecode; browser engines compile to native machine code</li>
+                    <li><strong>WASM call overhead</strong> - Each JS-to-WASM boundary crossing adds latency</li>
+                    <li><strong>Memory model</strong> - WASM uses linear memory with bounds checking on every access</li>
+                    <li><strong>No runtime optimization</strong> - Interpreters cannot optimize hot paths at runtime</li>
+                    <li><strong>Engine size</strong> - MicroQuickJS: 168KB, V8: ~10MB, SpiderMonkey: ~5MB</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-notice">
+            <strong>100% Built by Claude Code</strong> &mdash; Zero human code review or modification
+        </div>
+        <div class="footer-links">
+            <a href="https://github.com/franzenzenhofer/mquickjs-wasm" target="_blank">GitHub Repo</a>
+            <a href="https://github.com/bellard/mquickjs" target="_blank">Original MQuickJS</a>
+            <a href="https://claude.ai/code" target="_blank">Claude Code</a>
+        </div>
+    </footer>
+
+    <!-- MicroQuickJS WASM Engine -->
+    <script>
+        (function() {
+            var BUILD_VERSION = '20241224_v10';
+            var s = document.createElement('script');
+            s.src = 'mquickjs.js?v=' + BUILD_VERSION;
+            s.onload = function() { window.wasmLoaded = true; };
+            document.head.appendChild(s);
+        })();
+    </script>
+
+    <!-- Benchmark Runner -->
+    <script src="benchmark.js?v=20241224_v10"></script>
+</body>
+</html>

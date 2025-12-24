@@ -12,7 +12,7 @@ const MQuickJSIDE = (function() {
     'use strict';
 
     // Build version for cache busting
-    const BUILD_VERSION = '20241224_v4';
+    const BUILD_VERSION = '20241224_v10';
 
     // Example code snippets
     const examples = {
@@ -35,7 +35,6 @@ console.log("Sum 1-100:", sum);
 // Canvas is available!
 console.log("");
 console.log("Try the Canvas examples!");
-console.log("Click 'Examples' -> 'Shapes & Colors'");
 
 "Ready to code!";`,
 
@@ -116,159 +115,168 @@ canvas.fillText("MicroQuickJS Canvas!", 70, 180);
 console.log("Drew shapes on canvas!");
 "Canvas shapes drawn!";`,
 
-        'canvas-animation': `// Canvas Animation Loop
-// Uses requestAnimationFrame bridge
+        'canvas-animation': `// Canvas Animation - Bouncing Ball
+// Watch the rainbow ball bounce!
 
-var x = 0;
-var y = 100;
-var dx = 3;
-var dy = 2;
-var radius = 15;
-var hue = 0;
-var frame = 0;
+__anim.x = 150;
+__anim.y = 100;
+__anim.dx = 4;
+__anim.dy = 3;
+__anim.hue = 0;
+__anim.frame = 0;
 
-function animate() {
-    // Clear with trail effect
-    canvas.fillStyle = "rgba(13, 17, 23, 0.2)";
+__anim.update = function() {
+    // Clear with fade effect
+    canvas.fillStyle = "rgba(13, 17, 23, 0.15)";
     canvas.fillRect(0, 0, 300, 200);
 
     // Update position
-    x += dx;
-    y += dy;
+    __anim.x += __anim.dx;
+    __anim.y += __anim.dy;
 
-    // Bounce
-    if (x + radius > 300 || x - radius < 0) dx = -dx;
-    if (y + radius > 200 || y - radius < 0) dy = -dy;
+    // Bounce off walls
+    if (__anim.x > 285 || __anim.x < 15) __anim.dx = -__anim.dx;
+    if (__anim.y > 185 || __anim.y < 15) __anim.dy = -__anim.dy;
 
-    // Draw ball with rainbow color
-    hue = (hue + 3) % 360;
-    canvas.fillStyle = "hsl(" + hue + ", 100%, 60%)";
+    // Rainbow color
+    __anim.hue = (__anim.hue + 4) % 360;
+    canvas.fillStyle = "hsl(" + __anim.hue + ", 100%, 60%)";
+
+    // Draw ball
     canvas.beginPath();
-    canvas.arc(x, y, radius, 0, Math.PI * 2);
+    canvas.arc(__anim.x, __anim.y, 15, 0, Math.PI * 2);
     canvas.fill();
 
-    frame++;
-    if (frame < 200) {
-        requestAnimationFrame(animate);
+    __anim.frame++;
+    if (__anim.frame < 300) {
+        requestAnimationFrame(__anim.update);
     } else {
-        console.log("Animation complete! 200 frames");
+        console.log("Animation done! 300 frames");
     }
-}
+};
 
-console.log("Starting animation...");
-x = 150;
-animate();
+console.log("Starting bouncing ball...");
+__anim.update();
+"Animation running!";`,
 
-"Animation running...";`,
+        'canvas-game': `// Snake Game - Use Arrow Keys or WASD!
 
-        'canvas-game': `// Snake Game
-// Arrow keys or WASD to play!
+__game.GRID = 15;
+__game.COLS = 20;
+__game.ROWS = 13;
+__game.snake = [{x: 10, y: 6}];
+__game.dir = {x: 1, y: 0};
+__game.food = {x: 15, y: 6};
+__game.score = 0;
+__game.over = false;
 
-var GRID = 15;
-var COLS = 20;
-var ROWS = 13;
-
-var snake = [{x: 10, y: 6}];
-var dir = {x: 1, y: 0};
-var food = {x: 15, y: 6};
-var score = 0;
-var gameOver = false;
-
-function spawnFood() {
-    food.x = Math.floor(Math.random() * COLS);
-    food.y = Math.floor(Math.random() * ROWS);
-}
-
-function draw() {
+__game.draw = function() {
     // Background
     canvas.fillStyle = "#0d1117";
     canvas.fillRect(0, 0, 300, 200);
 
-    // Grid
+    // Grid lines
     canvas.strokeStyle = "#21262d";
-    for (var i = 0; i <= COLS; i++) {
+    canvas.lineWidth = 1;
+    for (var i = 0; i <= __game.COLS; i++) {
         canvas.beginPath();
-        canvas.moveTo(i * GRID, 0);
-        canvas.lineTo(i * GRID, ROWS * GRID);
+        canvas.moveTo(i * __game.GRID, 0);
+        canvas.lineTo(i * __game.GRID, __game.ROWS * __game.GRID);
         canvas.stroke();
     }
-    for (var i = 0; i <= ROWS; i++) {
+    for (var i = 0; i <= __game.ROWS; i++) {
         canvas.beginPath();
-        canvas.moveTo(0, i * GRID);
-        canvas.lineTo(COLS * GRID, i * GRID);
+        canvas.moveTo(0, i * __game.GRID);
+        canvas.lineTo(__game.COLS * __game.GRID, i * __game.GRID);
         canvas.stroke();
     }
 
-    // Food
+    // Food (red)
     canvas.fillStyle = "#f85149";
-    canvas.fillRect(food.x * GRID + 1, food.y * GRID + 1, GRID - 2, GRID - 2);
+    canvas.fillRect(
+        __game.food.x * __game.GRID + 2,
+        __game.food.y * __game.GRID + 2,
+        __game.GRID - 4, __game.GRID - 4
+    );
 
     // Snake
-    for (var i = 0; i < snake.length; i++) {
-        canvas.fillStyle = i === 0 ? "#3fb950" : "#238636";
-        canvas.fillRect(snake[i].x * GRID + 1, snake[i].y * GRID + 1, GRID - 2, GRID - 2);
+    for (var i = 0; i < __game.snake.length; i++) {
+        canvas.fillStyle = (i === 0) ? "#3fb950" : "#238636";
+        canvas.fillRect(
+            __game.snake[i].x * __game.GRID + 1,
+            __game.snake[i].y * __game.GRID + 1,
+            __game.GRID - 2, __game.GRID - 2
+        );
     }
 
     // Score
     canvas.fillStyle = "#fff";
     canvas.font = "12px monospace";
-    canvas.fillText("Score: " + score, 5, ROWS * GRID + 12);
-}
+    canvas.fillText("Score: " + __game.score, 5, __game.ROWS * __game.GRID + 12);
+};
 
-function update() {
-    if (gameOver) return;
+__game.update = function() {
+    if (__game.over) return;
 
     var head = {
-        x: snake[0].x + dir.x,
-        y: snake[0].y + dir.y
+        x: __game.snake[0].x + __game.dir.x,
+        y: __game.snake[0].y + __game.dir.y
     };
 
-    // Wrap
-    if (head.x < 0) head.x = COLS - 1;
-    if (head.x >= COLS) head.x = 0;
-    if (head.y < 0) head.y = ROWS - 1;
-    if (head.y >= ROWS) head.y = 0;
+    // Wrap around edges
+    if (head.x < 0) head.x = __game.COLS - 1;
+    if (head.x >= __game.COLS) head.x = 0;
+    if (head.y < 0) head.y = __game.ROWS - 1;
+    if (head.y >= __game.ROWS) head.y = 0;
 
-    // Self collision
-    for (var i = 0; i < snake.length; i++) {
-        if (snake[i].x === head.x && snake[i].y === head.y) {
-            gameOver = true;
-            console.log("Game Over! Score: " + score);
+    // Check self-collision
+    for (var i = 0; i < __game.snake.length; i++) {
+        if (__game.snake[i].x === head.x && __game.snake[i].y === head.y) {
+            __game.over = true;
+            console.log("Game Over! Final score: " + __game.score);
             return;
         }
     }
 
-    snake.unshift(head);
+    __game.snake.unshift(head);
 
-    // Eat food
-    if (head.x === food.x && head.y === food.y) {
-        score += 10;
-        spawnFood();
+    // Check food
+    if (head.x === __game.food.x && head.y === __game.food.y) {
+        __game.score += 10;
+        __game.food.x = Math.floor(Math.random() * __game.COLS);
+        __game.food.y = Math.floor(Math.random() * __game.ROWS);
     } else {
-        snake.pop();
+        __game.snake.pop();
     }
-}
+};
 
-function gameLoop() {
-    update();
-    draw();
-    if (!gameOver) {
-        setTimeout(gameLoop, 100);
+__game.loop = function() {
+    __game.update();
+    __game.draw();
+    if (!__game.over) {
+        setTimeout(__game.loop, 120);
     }
-}
+};
 
-// Key handler
+// Keyboard handler
 onKeyDown = function(key) {
-    if (key === "ArrowUp" || key === "w") dir = {x: 0, y: -1};
-    if (key === "ArrowDown" || key === "s") dir = {x: 0, y: 1};
-    if (key === "ArrowLeft" || key === "a") dir = {x: -1, y: 0};
-    if (key === "ArrowRight" || key === "d") dir = {x: 1, y: 0};
+    if ((key === "ArrowUp" || key === "w") && __game.dir.y !== 1) {
+        __game.dir = {x: 0, y: -1};
+    }
+    if ((key === "ArrowDown" || key === "s") && __game.dir.y !== -1) {
+        __game.dir = {x: 0, y: 1};
+    }
+    if ((key === "ArrowLeft" || key === "a") && __game.dir.x !== 1) {
+        __game.dir = {x: -1, y: 0};
+    }
+    if ((key === "ArrowRight" || key === "d") && __game.dir.x !== -1) {
+        __game.dir = {x: 1, y: 0};
+    }
 };
 
 console.log("=== SNAKE GAME ===");
-console.log("Use Arrow Keys or WASD!");
-gameLoop();
-
+console.log("Arrow Keys or WASD to move!");
+__game.loop();
 "Game started!";`,
 
         'canvas-drawing': `// Generative Art - Spiral Pattern
@@ -293,7 +301,6 @@ for (var i = 0; i < 500; i++) {
     canvas.fill();
 }
 
-// Title
 canvas.fillStyle = "#fff";
 canvas.font = "bold 14px sans-serif";
 canvas.fillText("Generative Spiral", 95, 190);
@@ -303,13 +310,13 @@ console.log("Generated spiral art!");
 
         mandelbrot: `// ASCII Mandelbrot Set
 var chars = " .:-=+*#%@";
-var output = [];
 
 console.log("=== Mandelbrot Set ===");
+console.log("");
 
-for (var py = -1.2; py <= 1.2; py += 0.1) {
+for (var py = -1.1; py <= 1.1; py += 0.1) {
     var line = "";
-    for (var px = -2.0; px <= 0.6; px += 0.05) {
+    for (var px = -2.0; px <= 0.5; px += 0.045) {
         var x = 0, y = 0;
         var i = 0;
         while (i < 50 && x*x + y*y < 4) {
@@ -329,13 +336,14 @@ for (var py = -1.2; py <= 1.2; py += 0.1) {
 
         benchmark: `// Performance Benchmark
 console.log("=== MicroQuickJS Benchmark ===");
+console.log("");
 
 // Loop test
 var t0 = Date.now();
 var sum = 0;
 for (var i = 0; i < 1000000; i++) sum += i;
 var t1 = Date.now();
-console.log("1M iterations: " + (t1 - t0) + "ms");
+console.log("1M loop iterations: " + (t1 - t0) + "ms");
 
 // Function calls
 t0 = Date.now();
@@ -343,9 +351,9 @@ function add(a, b) { return a + b; }
 var r = 0;
 for (var i = 0; i < 100000; i++) r = add(r, 1);
 t1 = Date.now();
-console.log("100K func calls: " + (t1 - t0) + "ms");
+console.log("100K function calls: " + (t1 - t0) + "ms");
 
-// Array ops
+// Array operations
 t0 = Date.now();
 var arr = [];
 for (var i = 0; i < 10000; i++) arr.push(i);
@@ -359,7 +367,7 @@ for (var i = 0; i < 10000; i++) {
     var obj = {x: i, y: i * 2, z: i * 3};
 }
 t1 = Date.now();
-console.log("10K objects: " + (t1 - t0) + "ms");
+console.log("10K object creations: " + (t1 - t0) + "ms");
 
 console.log("");
 console.log("Benchmark complete!");
@@ -410,17 +418,13 @@ console.log("Benchmark complete!");
 
     /**
      * Log message to console using safe DOM methods (no innerHTML)
-     * @param {string} text - Message text
-     * @param {string} type - Message type: log, error, warn, info, result
      */
     function log(text, type) {
         type = type || 'log';
 
-        // Create line container
         const line = document.createElement('div');
         line.className = 'console-line ' + type;
 
-        // Timestamp
         const timestamp = document.createElement('span');
         timestamp.className = 'timestamp';
         const time = new Date().toLocaleTimeString('en-US', {
@@ -431,16 +435,13 @@ console.log("Benchmark complete!");
         });
         timestamp.textContent = time;
 
-        // Prefix (icon placeholder)
         const prefix = document.createElement('span');
         prefix.className = 'prefix';
 
-        // Content (uses textContent for safety)
         const content = document.createElement('span');
         content.className = 'content';
         content.textContent = String(text);
 
-        // Assemble
         line.appendChild(timestamp);
         line.appendChild(prefix);
         line.appendChild(content);
@@ -459,7 +460,6 @@ console.log("Benchmark complete!");
 
     /**
      * Wait for WASM module to load
-     * @returns {Promise}
      */
     function waitForWasm() {
         return new Promise(function(resolve, reject) {
@@ -478,6 +478,22 @@ console.log("Benchmark complete!");
     }
 
     /**
+     * Initialize globals in WASM engine for animation/game state
+     */
+    function initWasmGlobals() {
+        // Initialize persistent globals using globalThis (required for strict mode)
+        runCode(`
+            globalThis.__anim = globalThis.__anim || {};
+            globalThis.__game = globalThis.__game || {};
+            globalThis.__timeouts = globalThis.__timeouts || [];
+            globalThis.__animCallback = globalThis.__animCallback || null;
+            globalThis.onKeyDown = globalThis.onKeyDown || null;
+            globalThis.__logs = globalThis.__logs || [];
+            globalThis.__canvasCommands = globalThis.__canvasCommands || [];
+        `);
+    }
+
+    /**
      * Initialize the WASM engine
      */
     async function initEngine() {
@@ -492,6 +508,9 @@ console.log("Benchmark complete!");
             if (initFn() !== 0) {
                 throw new Error('Engine initialization failed');
             }
+
+            // Initialize persistent globals
+            initWasmGlobals();
 
             dom.engineStatus.textContent = 'Ready';
             dom.engineStatus.className = 'status ready';
@@ -515,7 +534,6 @@ console.log("Benchmark complete!");
 
     /**
      * Execute canvas commands on the real canvas context
-     * @param {Array} commands - Array of command objects
      */
     function executeCanvasCommands(commands) {
         const ctx = dom.ctx;
@@ -572,207 +590,180 @@ console.log("Benchmark complete!");
     }
 
     /**
-     * Generate wrapper code for user JavaScript
-     * This wraps user code with Canvas API mocks that queue commands
-     * @param {string} userCode - The user's JavaScript code
-     * @returns {string} Wrapped code ready for WASM execution
+     * Generate wrapper code that uses persistent globals
      */
     function generateWrappedCode(userCode) {
         return `(function() {
-    var __logs = [];
-    var __canvasCommands = [];
-    var __animCallback = null;
-    var __keyCallback = null;
+    // Use GLOBAL arrays so callbacks can access them across frames
+    globalThis.__logs = [];
+    globalThis.__canvasCommands = [];
 
-    // Console mock
+    // Console mock - pushes to GLOBAL array
     var console = {
         log: function() {
             var args = [];
             for (var i = 0; i < arguments.length; i++) args.push(String(arguments[i]));
-            __logs.push(args.join(" "));
+            globalThis.__logs.push(args.join(" "));
         },
         warn: function() {
             var args = [];
             for (var i = 0; i < arguments.length; i++) args.push(String(arguments[i]));
-            __logs.push("WARN: " + args.join(" "));
+            globalThis.__logs.push("WARN: " + args.join(" "));
         },
         error: function() {
             var args = [];
             for (var i = 0; i < arguments.length; i++) args.push(String(arguments[i]));
-            __logs.push("ERROR: " + args.join(" "));
+            globalThis.__logs.push("ERROR: " + args.join(" "));
         }
     };
 
-    // Canvas API mock - queues commands for browser execution
+    // Canvas API mock - pushes to GLOBAL array so callbacks work across frames
     var canvas = {
         fillStyle: "#000",
         strokeStyle: "#fff",
         font: "12px sans-serif",
         lineWidth: 1,
-
         fillRect: function(x, y, w, h) {
-            __canvasCommands.push({cmd: "fillRect", args: [x, y, w, h], style: this.fillStyle});
+            globalThis.__canvasCommands.push({cmd: "fillRect", args: [x, y, w, h], style: this.fillStyle});
         },
         strokeRect: function(x, y, w, h) {
-            __canvasCommands.push({cmd: "strokeRect", args: [x, y, w, h], style: this.strokeStyle, lw: this.lineWidth});
+            globalThis.__canvasCommands.push({cmd: "strokeRect", args: [x, y, w, h], style: this.strokeStyle, lw: this.lineWidth});
         },
         clearRect: function(x, y, w, h) {
-            __canvasCommands.push({cmd: "clearRect", args: [x, y, w, h]});
+            globalThis.__canvasCommands.push({cmd: "clearRect", args: [x, y, w, h]});
         },
         fillText: function(text, x, y) {
-            __canvasCommands.push({cmd: "fillText", args: [text, x, y], style: this.fillStyle, font: this.font});
+            globalThis.__canvasCommands.push({cmd: "fillText", args: [text, x, y], style: this.fillStyle, font: this.font});
         },
         strokeText: function(text, x, y) {
-            __canvasCommands.push({cmd: "strokeText", args: [text, x, y], style: this.strokeStyle, font: this.font});
+            globalThis.__canvasCommands.push({cmd: "strokeText", args: [text, x, y], style: this.strokeStyle, font: this.font});
         },
-        beginPath: function() {
-            __canvasCommands.push({cmd: "beginPath"});
-        },
-        closePath: function() {
-            __canvasCommands.push({cmd: "closePath"});
-        },
-        moveTo: function(x, y) {
-            __canvasCommands.push({cmd: "moveTo", args: [x, y]});
-        },
-        lineTo: function(x, y) {
-            __canvasCommands.push({cmd: "lineTo", args: [x, y]});
-        },
-        arc: function(x, y, r, s, e) {
-            __canvasCommands.push({cmd: "arc", args: [x, y, r, s, e]});
-        },
-        fill: function() {
-            __canvasCommands.push({cmd: "fill", style: this.fillStyle});
-        },
-        stroke: function() {
-            __canvasCommands.push({cmd: "stroke", style: this.strokeStyle, lw: this.lineWidth});
-        },
-        rect: function(x, y, w, h) {
-            __canvasCommands.push({cmd: "rect", args: [x, y, w, h]});
-        }
+        beginPath: function() { globalThis.__canvasCommands.push({cmd: "beginPath"}); },
+        closePath: function() { globalThis.__canvasCommands.push({cmd: "closePath"}); },
+        moveTo: function(x, y) { globalThis.__canvasCommands.push({cmd: "moveTo", args: [x, y]}); },
+        lineTo: function(x, y) { globalThis.__canvasCommands.push({cmd: "lineTo", args: [x, y]}); },
+        arc: function(x, y, r, s, e) { globalThis.__canvasCommands.push({cmd: "arc", args: [x, y, r, s, e]}); },
+        fill: function() { globalThis.__canvasCommands.push({cmd: "fill", style: this.fillStyle}); },
+        stroke: function() { globalThis.__canvasCommands.push({cmd: "stroke", style: this.strokeStyle, lw: this.lineWidth}); },
+        rect: function(x, y, w, h) { globalThis.__canvasCommands.push({cmd: "rect", args: [x, y, w, h]}); }
     };
 
-    // Animation frame mock
+    // Animation - uses globalThis for strict mode
     function requestAnimationFrame(cb) {
-        __animCallback = cb;
+        globalThis.__animCallback = cb;
         return 1;
     }
 
-    // Timeout mock (simplified)
-    var __timeouts = [];
+    // Timeout - uses globalThis for strict mode
     function setTimeout(cb, delay) {
-        __timeouts.push({cb: cb, delay: delay || 0});
-        return __timeouts.length;
+        globalThis.__timeouts.push({cb: cb, delay: delay || 0, time: Date.now()});
+        return globalThis.__timeouts.length;
     }
-
-    // Key handler
-    var onKeyDown = null;
 
     try {
         var __result = (function() {
             ${userCode}
         })();
 
-        __keyCallback = onKeyDown;
-
-        return JSON.stringify({
-            logs: __logs,
-            canvas: __canvasCommands,
+        var result = {
+            logs: globalThis.__logs,
+            canvas: globalThis.__canvasCommands,
             result: __result === undefined ? null : __result,
-            hasAnim: __animCallback !== null,
-            hasKeyHandler: __keyCallback !== null,
-            hasTimeouts: __timeouts.length > 0
-        });
+            hasAnim: globalThis.__animCallback !== null,
+            hasTimeout: globalThis.__timeouts.length > 0,
+            hasKeyHandler: typeof globalThis.onKeyDown === 'function'
+        };
+        // Clear arrays after capturing
+        globalThis.__logs = [];
+        globalThis.__canvasCommands = [];
+        return JSON.stringify(result);
     } catch(e) {
-        return JSON.stringify({
-            logs: __logs,
-            canvas: __canvasCommands,
+        var errResult = {
+            logs: globalThis.__logs,
+            canvas: globalThis.__canvasCommands,
             error: String(e)
-        });
+        };
+        globalThis.__logs = [];
+        globalThis.__canvasCommands = [];
+        return JSON.stringify(errResult);
     }
 })();`;
     }
 
     /**
-     * Run animation loop in WASM
+     * Run one frame of animation/timeout loop
      */
-    function runAnimationLoop() {
-        const animCode = `(function() {
-    if (typeof __animCallback === 'function') {
-        var __canvasCommands = [];
-        var __logs = [];
-        var canvas = {
-            fillStyle: "#000", strokeStyle: "#fff", font: "12px sans-serif", lineWidth: 1,
-            fillRect: function(x,y,w,h) { __canvasCommands.push({cmd:"fillRect",args:[x,y,w,h],style:this.fillStyle}); },
-            strokeRect: function(x,y,w,h) { __canvasCommands.push({cmd:"strokeRect",args:[x,y,w,h],style:this.strokeStyle}); },
-            clearRect: function(x,y,w,h) { __canvasCommands.push({cmd:"clearRect",args:[x,y,w,h]}); },
-            fillText: function(t,x,y) { __canvasCommands.push({cmd:"fillText",args:[t,x,y],style:this.fillStyle,font:this.font}); },
-            beginPath: function() { __canvasCommands.push({cmd:"beginPath"}); },
-            arc: function(x,y,r,s,e) { __canvasCommands.push({cmd:"arc",args:[x,y,r,s,e]}); },
-            fill: function() { __canvasCommands.push({cmd:"fill",style:this.fillStyle}); },
-            stroke: function() { __canvasCommands.push({cmd:"stroke",style:this.strokeStyle}); },
-            moveTo: function(x,y) { __canvasCommands.push({cmd:"moveTo",args:[x,y]}); },
-            lineTo: function(x,y) { __canvasCommands.push({cmd:"lineTo",args:[x,y]}); }
-        };
-        var console = {
-            log: function() {
-                var args = [];
-                for (var i = 0; i < arguments.length; i++) args.push(String(arguments[i]));
-                __logs.push(args.join(" "));
-            }
-        };
-        var __nextAnim = null;
-        function requestAnimationFrame(cb) { __nextAnim = cb; return 1; }
-        var __timeouts = [];
-        function setTimeout(cb, d) { __timeouts.push({cb:cb,delay:d||0}); return __timeouts.length; }
+    function runFrame() {
+        // Frame code uses GLOBAL arrays - the callbacks already reference them
+        const frameCode = `(function() {
+    // Clear global arrays for this frame
+    globalThis.__logs = [];
+    globalThis.__canvasCommands = [];
 
-        __animCallback();
-        __animCallback = __nextAnim;
+    var cont = false;
 
-        // Process timeouts
-        for (var i = 0; i < __timeouts.length; i++) {
-            if (__timeouts[i].delay <= 16) {
-                __timeouts[i].cb();
-            }
-        }
-
-        return JSON.stringify({
-            canvas: __canvasCommands,
-            logs: __logs,
-            cont: __nextAnim !== null || __timeouts.length > 0
-        });
+    // Run animation callback if exists
+    if (globalThis.__animCallback) {
+        var cb = globalThis.__animCallback;
+        globalThis.__animCallback = null;
+        cb();
+        cont = true;
     }
-    return JSON.stringify({cont: false});
+
+    // Run due timeouts
+    var now = Date.now();
+    var pending = [];
+    for (var i = 0; i < globalThis.__timeouts.length; i++) {
+        var t = globalThis.__timeouts[i];
+        if (now - t.time >= t.delay) {
+            t.cb();
+            cont = true;
+        } else {
+            pending.push(t);
+        }
+    }
+    globalThis.__timeouts = pending;
+
+    cont = cont || globalThis.__animCallback !== null || globalThis.__timeouts.length > 0;
+
+    return JSON.stringify({
+        logs: globalThis.__logs,
+        canvas: globalThis.__canvasCommands,
+        cont: cont
+    });
 })();`;
 
-        function frame() {
-            try {
-                const r = JSON.parse(runCode(animCode));
-                if (r.canvas) executeCanvasCommands(r.canvas);
-                if (r.logs) r.logs.forEach(function(l) { log(l, 'log'); });
-                if (r.cont) {
-                    animationId = requestAnimationFrame(frame);
-                }
-            } catch (e) {
-                log('Animation error: ' + e.message, 'error');
+        try {
+            const r = JSON.parse(runCode(frameCode));
+            if (r.logs) {
+                r.logs.forEach(function(l) { log(l, 'log'); });
             }
+            if (r.canvas && r.canvas.length > 0) {
+                executeCanvasCommands(r.canvas);
+            }
+            if (r.cont) {
+                animationId = requestAnimationFrame(runFrame);
+            }
+        } catch (e) {
+            log('Frame error: ' + e.message, 'error');
         }
-
-        animationId = requestAnimationFrame(frame);
     }
 
     /**
      * Setup keyboard handler for games
      */
     function setupKeyHandler() {
+        if (keyHandler) return; // Already set up
+
         keyHandler = function(e) {
             const key = e.key;
-            const gameKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'];
+            const gameKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'];
             if (gameKeys.indexOf(key) !== -1) {
                 e.preventDefault();
                 try {
-                    runCode('if (typeof onKeyDown === "function") onKeyDown("' + key + '");');
+                    runCode('if (typeof globalThis.onKeyDown === "function") globalThis.onKeyDown("' + key + '");');
                 } catch (err) {
-                    // Ignore key handler errors
+                    // Ignore
                 }
             }
         };
@@ -785,11 +776,14 @@ console.log("Benchmark complete!");
     function executeCode() {
         if (!runCode || !editor) return;
 
-        // Cancel any running animation
+        // Stop any running animation
         if (animationId) {
             cancelAnimationFrame(animationId);
             animationId = null;
         }
+
+        // Reset animation state
+        runCode('globalThis.__animCallback = null; globalThis.__timeouts = [];');
 
         const userCode = editor.getValue();
         if (!userCode.trim()) {
@@ -837,12 +831,12 @@ console.log("Benchmark complete!");
                 log(result.result, 'result');
             }
 
-            // Handle animation
-            if (result.hasAnim || result.hasTimeouts) {
-                runAnimationLoop();
+            // Start animation/timeout loop if needed
+            if (result.hasAnim || result.hasTimeout) {
+                animationId = requestAnimationFrame(runFrame);
             }
 
-            // Handle key events
+            // Setup key handler if needed
             if (result.hasKeyHandler) {
                 setupKeyHandler();
             }
@@ -871,6 +865,7 @@ console.log("Benchmark complete!");
         }
         if (resetEngine) {
             resetEngine();
+            initWasmGlobals();
             clearConsole();
             clearCanvas();
             log('Engine reset', 'info');
@@ -879,7 +874,6 @@ console.log("Benchmark complete!");
 
     /**
      * Load an example into the editor
-     * @param {string} name - Example name
      */
     function loadExample(name) {
         if (examples[name] && editor) {
@@ -923,14 +917,12 @@ console.log("Benchmark complete!");
             dom.examplesMenu.classList.toggle('show');
         });
 
-        // Close menu when clicking outside
         document.addEventListener('click', function(e) {
             if (!dom.examplesBtn.contains(e.target) && !dom.examplesMenu.contains(e.target)) {
                 dom.examplesMenu.classList.remove('show');
             }
         });
 
-        // Example buttons
         const exampleBtns = dom.examplesMenu.querySelectorAll('button[data-example]');
         for (let i = 0; i < exampleBtns.length; i++) {
             exampleBtns[i].addEventListener('click', function() {
@@ -942,7 +934,6 @@ console.log("Benchmark complete!");
         initEngine();
     }
 
-    // Public API
     return {
         init: init,
         examples: examples,
