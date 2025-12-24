@@ -79,8 +79,8 @@ console.log("Fibonacci(20):", fib(20));
     <h3>Output:</h3>
     <div id="output"></div>
 
-    <!-- Load MQuickJS-WASM from CDN -->
-    <script src="https://mquickjs-claude-code.franzai.com/mquickjs.js"></script>
+    <!-- Load MQuickJS-WASM from GitHub -->
+    <script src="https://raw.githubusercontent.com/franzenzenhofer/mquickjs-wasm/main/dist/mquickjs.js"></script>
     <script>
         var engine = null;
         var runCode = null;
@@ -136,11 +136,11 @@ console.log("Fibonacci(20):", fib(20));
 </html>
 ```
 
-### 2. Or Use the CDN Directly
+### 2. Or Use GitHub Directly
 
 ```html
 <!-- Add to your HTML -->
-<script src="https://mquickjs-claude-code.franzai.com/mquickjs.js"></script>
+<script src="https://raw.githubusercontent.com/franzenzenhofer/mquickjs-wasm/main/dist/mquickjs.js"></script>
 
 <script>
 MQuickJS().then(function(Module) {
@@ -160,12 +160,12 @@ MQuickJS().then(function(Module) {
 </script>
 ```
 
-### 3. CDN Files
+### 3. GitHub Files
 
 | File | URL | Size |
 |------|-----|------|
-| **JS Loader** | `https://mquickjs-claude-code.franzai.com/mquickjs.js` | ~15KB |
-| **WASM Binary** | `https://mquickjs-claude-code.franzai.com/mquickjs.wasm` | 168KB |
+| **JS Loader** | `https://raw.githubusercontent.com/franzenzenhofer/mquickjs-wasm/main/dist/mquickjs.js` | ~15KB |
+| **WASM Binary** | `https://raw.githubusercontent.com/franzenzenhofer/mquickjs-wasm/main/dist/mquickjs.wasm` | 168KB |
 
 The JS loader automatically fetches the WASM binary from the same directory.
 
@@ -174,8 +174,8 @@ The JS loader automatically fetches the WASM binary from the same directory.
 Download both files to your server:
 
 ```bash
-curl -O https://mquickjs-claude-code.franzai.com/mquickjs.js
-curl -O https://mquickjs-claude-code.franzai.com/mquickjs.wasm
+curl -O https://raw.githubusercontent.com/franzenzenhofer/mquickjs-wasm/main/dist/mquickjs.js
+curl -O https://raw.githubusercontent.com/franzenzenhofer/mquickjs-wasm/main/dist/mquickjs.wasm
 ```
 
 Then use `<script src="mquickjs.js"></script>` with your local path.
