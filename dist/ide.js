@@ -12,7 +12,7 @@ const MQuickJSIDE = (function() {
     'use strict';
 
     // Build version for cache busting
-    const BUILD_VERSION = '20251224_v15';
+    const BUILD_VERSION = '20251224_v16';
 
     // Example code snippets
     const examples = {
