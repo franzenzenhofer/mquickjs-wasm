@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="version" content="20251224_v13">
+    <meta name="version" content="20251224_v14">
     <title>WASM vs Browser Benchmark - MicroQuickJS</title>
 
     <!-- SEO -->
@@ -25,7 +25,7 @@
             --warning: #d29922;
             --error: #f85149;
             --border: #30363d;
-            --purple: #a371f7;
+            --highlight: #58a6ff;
             --cyan: #56d4dd;
         }
 
@@ -63,9 +63,13 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            text-decoration: none;
+            color: inherit;
         }
 
-        .logo h1 { font-size: 1.2rem; font-weight: 600; }
+        .logo:hover { opacity: 0.9; }
+
+        .logo h1 { font-size: 1rem; font-weight: 600; }
 
         .badge {
             font-size: 0.6rem;
@@ -177,7 +181,7 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--purple));
+            background: linear-gradient(135deg, var(--accent), var(--accent));
             color: white;
             border: none;
             font-size: 1.1rem;
@@ -211,7 +215,7 @@
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, var(--accent), var(--purple));
+            background: linear-gradient(90deg, var(--accent), var(--accent));
             width: 0%;
             transition: width 0.3s;
         }
@@ -464,14 +468,14 @@
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 1rem;
-            background: rgba(163, 113, 247, 0.1);
-            border: 1px solid rgba(163, 113, 247, 0.3);
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.3);
             border-radius: 6px;
             font-size: 0.8rem;
             color: var(--text-secondary);
         }
 
-        .footer-notice strong { color: var(--purple); }
+        .footer-notice strong { color: var(--accent); }
 
         .footer-links {
             margin-top: 0.75rem;
@@ -502,11 +506,10 @@
 <body>
     <header>
         <div class="header-content">
-            <div class="logo">
-                <h1>MicroQuickJS</h1>
-                <span class="badge badge-wasm">WASM</span>
-                <span class="badge badge-version" id="header-version">v13</span>
-            </div>
+            <a href="index.html" class="logo">
+                <h1>MQuickJS-WASM-by-CC</h1>
+                <span class="badge badge-version" id="header-version">v14</span>
+            </a>
             <div class="header-links">
                 <a href="index.html" class="nav-link">IDE</a>
                 <a href="benchmark.html" class="nav-link active">Benchmark</a>
@@ -533,6 +536,12 @@
             <button id="run-quick-btn" class="btn-secondary" disabled>
                 Quick Test (~5s)
             </button>
+        </div>
+
+        <!-- Console Log - directly below buttons -->
+        <div class="console-section">
+            <h3>Console Log</h3>
+            <div id="console-output" class="console-output"></div>
         </div>
 
         <section id="progress-section" class="progress-section">
@@ -588,12 +597,6 @@
                     <li><strong>Engine size</strong> - MicroQuickJS: 168KB, V8: ~10MB, SpiderMonkey: ~5MB</li>
                 </ul>
             </div>
-
-            <!-- Console Log -->
-            <div class="console-section">
-                <h3>Console Log</h3>
-                <div id="console-output" class="console-output"></div>
-            </div>
         </section>
     </main>
 
@@ -620,6 +623,6 @@
     </script>
 
     <!-- Benchmark Runner -->
-    <script src="benchmark.js?v=20251224_v13"></script>
+    <script src="benchmark.js?v=20251224_v14"></script>
 </body>
 </html>
