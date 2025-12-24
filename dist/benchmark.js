@@ -14,7 +14,7 @@
 const Benchmark = (function() {
     'use strict';
 
-    const BUILD_VERSION = '20251224_v14';
+    const BUILD_VERSION = '20251224_v15';
 
     // Benchmark test suite - all code is predefined, not user input
     const benchmarkSuite = {
