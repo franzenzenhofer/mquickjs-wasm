@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "mquickjs.h"
 
 /* Memory pool for the JS engine */
@@ -32,6 +33,116 @@ static JSContext *global_ctx = NULL;
 static char output_buffer[OUTPUT_BUF_SIZE];
 static size_t output_pos = 0;
 
+/* Custom print function implementation for console.log */
+static JSValue js_print(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    int i;
+    JSValue v;
+
+    for(i = 0; i < argc; i++) {
+        if (i != 0 && output_pos < OUTPUT_BUF_SIZE - 1) {
+            output_buffer[output_pos++] = ' ';
+        }
+        v = argv[i];
+        if (JS_IsString(ctx, v)) {
+            JSCStringBuf buf;
+            const char *str;
+            str = JS_ToCString(ctx, v, &buf);
+            if (str) {
+                size_t len = strlen(str);
+                if (output_pos + len < OUTPUT_BUF_SIZE - 1) {
+                    memcpy(output_buffer + output_pos, str, len);
+                    output_pos += len;
+                }
+            }
+        } else if (JS_IsInt(v)) {
+            int val = JS_VALUE_GET_INT(v);
+            char num_buf[32];
+            int len = snprintf(num_buf, sizeof(num_buf), "%d", val);
+            if (output_pos + len < OUTPUT_BUF_SIZE - 1) {
+                memcpy(output_buffer + output_pos, num_buf, len);
+                output_pos += len;
+            }
+        } else if (JS_IsUndefined(v)) {
+            const char *undef = "undefined";
+            size_t len = strlen(undef);
+            if (output_pos + len < OUTPUT_BUF_SIZE - 1) {
+                memcpy(output_buffer + output_pos, undef, len);
+                output_pos += len;
+            }
+        } else if (JS_IsNull(v)) {
+            const char *null_str = "null";
+            size_t len = strlen(null_str);
+            if (output_pos + len < OUTPUT_BUF_SIZE - 1) {
+                memcpy(output_buffer + output_pos, null_str, len);
+                output_pos += len;
+            }
+        } else if (JS_IsBool(v)) {
+            const char *bool_str = JS_VALUE_GET_SPECIAL_VALUE(v) ? "true" : "false";
+            size_t len = strlen(bool_str);
+            if (output_pos + len < OUTPUT_BUF_SIZE - 1) {
+                memcpy(output_buffer + output_pos, bool_str, len);
+                output_pos += len;
+            }
+        } else {
+            /* For other types, just show [Object] */
+            JSCStringBuf buf;
+            const char *str = JS_ToCString(ctx, v, &buf);
+            if (str) {
+                size_t len = strlen(str);
+                if (output_pos + len < OUTPUT_BUF_SIZE - 1) {
+                    memcpy(output_buffer + output_pos, str, len);
+                    output_pos += len;
+                }
+            }
+        }
+    }
+    if (output_pos < OUTPUT_BUF_SIZE - 1) {
+        output_buffer[output_pos++] = '\n';
+    }
+    output_buffer[output_pos] = '\0';
+    return JS_UNDEFINED;
+}
+
+/* Date.now implementation */
+static JSValue js_date_now(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    /* Use emscripten's time */
+    double now = emscripten_get_now();
+    return JS_NewFloat64(ctx, now);
+}
+
+/* performance.now implementation */
+static JSValue js_performance_now(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    double now = emscripten_get_now();
+    return JS_NewFloat64(ctx, now);
+}
+
+/* Required global functions that the stdlib references */
+static JSValue js_gc(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
+    JS_GC(ctx);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_load(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
+    /* Not supported in WASM browser environment */
+    return JS_ThrowTypeError(ctx, "load() is not supported in browser");
+}
+
+/* Timer stubs - actual timers would require async support */
+static JSValue js_setTimeout(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
+    /* Basic stub - timers not fully supported in sync WASM */
+    return JS_ThrowTypeError(ctx, "setTimeout() requires async support");
+}
+
+static JSValue js_clearTimeout(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
+    return JS_UNDEFINED;
+}
+
+/* Include the generated stdlib header - this defines js_stdlib */
+#include "mqjs_stdlib.h"
+
 /* Custom write function to capture output */
 static void wasm_write_func(void *opaque, const void *buf, size_t buf_len) {
     (void)opaque;
@@ -42,28 +153,6 @@ static void wasm_write_func(void *opaque, const void *buf, size_t buf_len) {
     }
 }
 
-/* Custom console.log implementation for JS */
-static JSValue js_console_log(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
-    (void)this_val;
-    for (int i = 0; i < argc; i++) {
-        JSCStringBuf buf;
-        const char *str = JS_ToCString(ctx, argv[i], &buf);
-        if (str) {
-            size_t len = strlen(str);
-            if (output_pos + len + 2 < OUTPUT_BUF_SIZE - 1) {
-                memcpy(output_buffer + output_pos, str, len);
-                output_pos += len;
-                if (i < argc - 1) {
-                    output_buffer[output_pos++] = ' ';
-                }
-            }
-        }
-    }
-    output_buffer[output_pos++] = '\n';
-    output_buffer[output_pos] = '\0';
-    return JS_UNDEFINED;
-}
-
 /* Initialize the JavaScript engine */
 EMSCRIPTEN_KEEPALIVE
 int mquickjs_init(void) {
@@ -71,8 +160,8 @@ int mquickjs_init(void) {
         return 0;  /* Already initialized */
     }
 
-    /* Create context with our memory pool */
-    global_ctx = JS_NewContext(js_memory, sizeof(js_memory), NULL);
+    /* Create context with the standard library */
+    global_ctx = JS_NewContext(js_memory, sizeof(js_memory), &js_stdlib);
     if (!global_ctx) {
         return -1;
     }
@@ -124,20 +213,21 @@ const char* mquickjs_run(const char *code) {
     output_pos = 0;
     output_buffer[0] = '\0';
 
-    /* Parse and run the code using JS_Eval which is the engine's execution function */
-    JSValue val = JS_Eval(global_ctx, code, strlen(code), "<input>", JS_EVAL_RETVAL);
+    /* Parse and run the code */
+    /* JS_EVAL_RETVAL: return last expression value
+       JS_EVAL_REPL: allow implicit global variable definitions */
+    JSValue val = JS_Eval(global_ctx, code, strlen(code), "<input>", JS_EVAL_RETVAL | JS_EVAL_REPL);
 
     if (JS_IsException(val)) {
         /* Get exception message */
         JSValue exc = JS_GetException(global_ctx);
-        if (!JS_IsUndefined(exc)) {
-            JSCStringBuf buf;
-            const char *str = JS_ToCString(global_ctx, exc, &buf);
-            if (str) {
-                snprintf(result_buffer, sizeof(result_buffer), "Error: %s", str);
-            } else {
-                snprintf(result_buffer, sizeof(result_buffer), "Error: Unknown exception");
-            }
+        /* Clear and use output buffer for error */
+        output_pos = 0;
+        output_buffer[0] = '\0';
+        /* Use JS_PrintValueF to format the exception (writes to log func) */
+        JS_PrintValueF(global_ctx, exc, 1 /* JS_DUMP_LONG */);
+        if (output_pos > 0) {
+            snprintf(result_buffer, sizeof(result_buffer), "Error: %s", output_buffer);
         } else {
             snprintf(result_buffer, sizeof(result_buffer), "Error: Exception occurred");
         }
@@ -151,6 +241,10 @@ const char* mquickjs_run(const char *code) {
         }
         return "undefined";
     } else if (JS_IsNull(val)) {
+        if (output_pos > 0) {
+            snprintf(result_buffer, sizeof(result_buffer), "%snull", output_buffer);
+            return result_buffer;
+        }
         return "null";
     } else {
         JSCStringBuf buf;

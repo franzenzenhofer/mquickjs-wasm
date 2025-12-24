@@ -33,7 +33,7 @@ This is a fork of [bellard/mquickjs](https://github.com/bellard/mquickjs) that a
 
 | Metric | Value |
 |--------|-------|
-| WASM Size | 118 KB |
+| WASM Size | 168 KB |
 | JS Engine Memory | 1 MB |
 | Original ROM Size | ~100 KB |
 | Min RAM Required | ~10 KB |

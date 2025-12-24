@@ -394,7 +394,7 @@
                It supports a subset of JavaScript close to ES5 with some modern extensions.</p>
             <div class="stats">
                 <div class="stat">
-                    <span class="stat-value" id="wasm-size">118</span>
+                    <span class="stat-value" id="wasm-size">168</span>
                     <span class="stat-label">KB WASM Size</span>
                 </div>
                 <div class="stat">
@@ -455,6 +455,7 @@ for (var i = 1; i <= 100; i++) {
                 <button class="example-btn" data-example="mandelbrot">Mandelbrot ASCII</button>
                 <button class="example-btn" data-example="objects">Objects & Arrays</button>
                 <button class="example-btn" data-example="closures">Closures</button>
+                <button class="example-btn" data-example="game">Mini Game</button>
             </div>
         </div>
     </main>
@@ -601,7 +602,52 @@ results.push("Counter2: " + counter2());
 results.push("Counter2: " + counter2());
 results.push("Counter1: " + counter1());
 
-results.join("\\n");`
+results.join("\\n");`,
+
+            game: `// Mini Game: Number Guessing with AI
+// A simple game running in MicroQuickJS WASM!
+
+var secretNumber = Math.floor(Math.random() * 100) + 1;
+var attempts = 0;
+var maxAttempts = 7;
+var output = [];
+
+output.push("=== NUMBER GUESSING GAME ===");
+output.push("I'm thinking of a number between 1 and 100.");
+output.push("You have " + maxAttempts + " attempts to guess it!");
+output.push("");
+
+// Simulate AI playing the game (binary search strategy)
+var low = 1;
+var high = 100;
+
+while (attempts < maxAttempts) {
+    attempts++;
+    var guess = Math.floor((low + high) / 2);
+
+    output.push("Attempt " + attempts + ": Guessing " + guess + "...");
+
+    if (guess === secretNumber) {
+        output.push("");
+        output.push(">>> WINNER! Found " + secretNumber + " in " + attempts + " attempts! <<<");
+        break;
+    } else if (guess < secretNumber) {
+        output.push("  Too low! Going higher...");
+        low = guess + 1;
+    } else {
+        output.push("  Too high! Going lower...");
+        high = guess - 1;
+    }
+}
+
+if (attempts === maxAttempts && guess !== secretNumber) {
+    output.push("");
+    output.push("Game Over! The number was " + secretNumber);
+}
+
+output.push("");
+output.push("=== Thanks for playing! ===");
+output.join("\\n");`
         };
 
         // DOM elements

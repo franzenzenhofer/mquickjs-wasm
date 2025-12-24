@@ -29,16 +29,18 @@ DIST_DIR = dist
 # Source files
 WASM_SRCS = wasm_wrapper.c mquickjs.c dtoa.c libm.c cutils.c
 
-# First we need to generate the atom header
+# First we need to generate the atom header and stdlib header
 HOST_CC = gcc
 HOST_CFLAGS = -Wall -g -MMD -D_GNU_SOURCE -fno-math-errno -fno-trapping-math -O2
 
-.PHONY: all clean setup
+.PHONY: all clean setup headers
 
-all: setup $(DIST_DIR)/mquickjs.js
+all: headers setup $(DIST_DIR)/mquickjs.js
 
 setup:
 	mkdir -p $(DIST_DIR)
+
+headers: mquickjs_atom.h mqjs_stdlib.h
 
 # Generate mquickjs_atom.h using native build first
 mqjs_stdlib.host.o: mqjs_stdlib.c
@@ -51,12 +53,16 @@ mqjs_stdlib: mqjs_stdlib.host.o mquickjs_build.host.o
 	$(HOST_CC) -o $@ $^
 
 mquickjs_atom.h: mqjs_stdlib
-	./mqjs_stdlib -a > $@
+	./mqjs_stdlib -m32 -a > $@
 
-# Build WASM module
-$(DIST_DIR)/mquickjs.js: $(WASM_SRCS) mquickjs_atom.h
+# Generate mqjs_stdlib.h for 32-bit WASM target
+mqjs_stdlib.h: mqjs_stdlib
+	./mqjs_stdlib -m32 > $@
+
+# Build WASM module - depends on headers
+$(DIST_DIR)/mquickjs.js: $(WASM_SRCS) mquickjs_atom.h mqjs_stdlib.h | setup
 	$(CC) $(CFLAGS) $(EMFLAGS) -o $@ $(WASM_SRCS) -lm
 
 clean:
-	rm -f *.host.o mqjs_stdlib mquickjs_atom.h
+	rm -f *.host.o mqjs_stdlib mquickjs_atom.h mqjs_stdlib.h
 	rm -rf $(DIST_DIR)
