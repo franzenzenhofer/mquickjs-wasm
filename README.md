@@ -1,12 +1,12 @@
 # MicroQuickJS WASM
 
-**A WebAssembly port of MicroQuickJS - Run a minimal JavaScript engine in your browser.**
+**A WebAssembly port of MicroQuickJS - Run a minimal JavaScript engine in your browser with Canvas API support.**
 
 ---
 
 ## 100% Built by Claude Code
 
-This entire WASM port, demo page, and deployment was created by [Claude Code](https://claude.ai/code) with **zero human code review or modification**.
+This entire WASM port, IDE, Canvas API bridge, and deployment was created by [Claude Code](https://claude.ai/code) with **zero human code review or modification**.
 
 ---
 
@@ -14,7 +14,11 @@ This entire WASM port, demo page, and deployment was created by [Claude Code](ht
 
 **[mquickjs-claude-code.franzai.com](https://mquickjs-claude-code.franzai.com)**
 
-Try the interactive JavaScript playground powered by MicroQuickJS running in WebAssembly!
+A full JavaScript IDE powered by MicroQuickJS running in WebAssembly with:
+- **CodeMirror Editor** with syntax highlighting
+- **Canvas API** for graphics and games
+- **Console output** with timestamps
+- **Mobile responsive** design
 
 ---
 
@@ -26,7 +30,10 @@ This is a fork of [bellard/mquickjs](https://github.com/bellard/mquickjs) that a
 
 - `wasm_wrapper.c` - Browser-friendly C wrapper for WASM
 - `Makefile.wasm` - Emscripten build configuration
-- `dist/index.html` - Interactive demo page
+- `dist/index.html` - Full IDE with CodeMirror editor
+- **Canvas API Bridge** - Draw graphics from JS running in WASM
+- **Animation support** - requestAnimationFrame bridge
+- **Keyboard input** - Play games like Snake!
 - Cloudflare Pages deployment
 
 ### Stats

@@ -27,3 +27,16 @@ rempio2_test
 # OS files
 .DS_Store
 Thumbs.db
+
+# Security - never commit
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+secrets.json
+*.secret
+
+# Wrangler
+.wrangler/
+node_modules/
