@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroQuickJS WASM - Interactive Demo</title>
+    <meta name="description" content="Run JavaScript in your browser using MicroQuickJS compiled to WebAssembly. 100% built by Claude Code.">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #79b8ff;
+            --success: #3fb950;
+            --error: #f85149;
+            --border: #30363d;
+            --code-bg: #0d1117;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .attribution {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .attribution a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .attribution a:hover {
+            text-decoration: underline;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .info-banner {
+            background: linear-gradient(135deg, #1a1f35 0%, #0d1117 100%);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-banner h2 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        .info-banner p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .stats {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .editor-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: var(--bg-tertiary);
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header .status {
+            font-size: 0.75rem;
+            font-weight: normal;
+            color: var(--text-secondary);
+        }
+
+        .panel-header .status.ready {
+            color: var(--success);
+        }
+
+        .panel-header .status.loading {
+            color: var(--accent);
+        }
+
+        .panel-header .status.error {
+            color: var(--error);
+        }
+
+        #code-input {
+            width: 100%;
+            min-height: 300px;
+            background: var(--code-bg);
+            color: var(--text-primary);
+            border: none;
+            padding: 1rem;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            resize: vertical;
+            outline: none;
+        }
+
+        #output {
+            min-height: 300px;
+            padding: 1rem;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-secondary);
+            overflow: auto;
+        }
+
+        #output.has-result {
+            color: var(--text-primary);
+        }
+
+        #output.has-error {
+            color: var(--error);
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--border);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .examples {
+            margin-top: 2rem;
+        }
+
+        .examples h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .example-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .example-btn {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .example-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        footer {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        .transparency-notice {
+            background: linear-gradient(135deg, #1a2a1a 0%, #0d1117 100%);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .transparency-notice h3 {
+            color: var(--success);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .transparency-notice p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(13, 17, 23, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 1rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading MicroQuickJS WASM...</div>
+    </div>
+
+    <header>
+        <div class="header-content">
+            <h1>
+                MicroQuickJS <span class="badge">WASM</span>
+            </h1>
+            <div class="attribution">
+                Original by <a href="https://bellard.org/" target="_blank" rel="noopener">Fabrice Bellard</a> |
+                WASM port by <a href="https://claude.ai/code" target="_blank" rel="noopener">Claude Code</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="info-banner">
+            <h2>Minimal JavaScript Engine in WebAssembly</h2>
+            <p>MicroQuickJS is a JavaScript engine designed for embedded systems, now running in your browser via WebAssembly.
+               It supports a subset of JavaScript close to ES5 with some modern extensions.</p>
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-value" id="wasm-size">118</span>
+                    <span class="stat-label">KB WASM Size</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="mem-size">1</span>
+                    <span class="stat-label">MB JS Memory</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="exec-time">-</span>
+                    <span class="stat-label">ms Last Exec</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-container">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>JavaScript Code</span>
+                </div>
+                <textarea id="code-input" placeholder="// Enter JavaScript code here...
+// Note: This is a minimal ES5-like subset
+
+var result = 0;
+for (var i = 1; i <= 10; i++) {
+    result += i;
+}
+result; // Return value">// Welcome to MicroQuickJS WASM Demo!
+// This JavaScript engine runs entirely in your browser via WebAssembly.
+
+// Try some calculations
+var sum = 0;
+for (var i = 1; i <= 100; i++) {
+    sum += i;
+}
+
+"Sum of 1 to 100 = " + sum;</textarea>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Output</span>
+                    <span id="engine-status" class="status loading">Loading...</span>
+                </div>
+                <div id="output">Waiting for engine to load...</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="run-btn" class="btn-primary" disabled>Run Code</button>
+            <button id="clear-btn" class="btn-secondary" disabled>Clear Output</button>
+            <button id="reset-btn" class="btn-secondary" disabled>Reset Engine</button>
+        </div>
+
+        <div class="examples">
+            <h3>Try these examples:</h3>
+            <div class="example-buttons">
+                <button class="example-btn" data-example="fibonacci">Fibonacci</button>
+                <button class="example-btn" data-example="factorial">Factorial</button>
+                <button class="example-btn" data-example="primes">Prime Numbers</button>
+                <button class="example-btn" data-example="mandelbrot">Mandelbrot ASCII</button>
+                <button class="example-btn" data-example="objects">Objects & Arrays</button>
+                <button class="example-btn" data-example="closures">Closures</button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="transparency-notice">
+            <h3>100% Built by AI</h3>
+            <p>This entire WASM port, demo page, and deployment was created by <strong>Claude Code</strong> (claude.ai/code)
+               with zero human code review or modification. The original MicroQuickJS engine is by Fabrice Bellard and Charlie Gordon.</p>
+        </div>
+        <div class="footer-links">
+            <a href="https://github.com/franzenzenhofer/mquickjs-wasm" target="_blank" rel="noopener">GitHub Repository</a>
+            <a href="https://github.com/bellard/mquickjs" target="_blank" rel="noopener">Original MQuickJS</a>
+            <a href="https://claude.ai/code" target="_blank" rel="noopener">Claude Code</a>
+        </div>
+    </footer>
+
+    <script>
+        // Example code snippets
+        const examples = {
+            fibonacci: `// Fibonacci sequence
+function fib(n) {
+    if (n <= 1) return n;
+    var a = 0, b = 1;
+    for (var i = 2; i <= n; i++) {
+        var temp = a + b;
+        a = b;
+        b = temp;
+    }
+    return b;
+}
+
+var results = [];
+for (var i = 0; i <= 20; i++) {
+    results.push(fib(i));
+}
+"Fibonacci(0-20): " + results.join(", ");`,
+
+            factorial: `// Factorial calculation
+function factorial(n) {
+    if (n <= 1) return 1;
+    var result = 1;
+    for (var i = 2; i <= n; i++) {
+        result *= i;
+    }
+    return result;
+}
+
+var results = [];
+for (var i = 0; i <= 12; i++) {
+    results.push(i + "! = " + factorial(i));
+}
+results.join("\\n");`,
+
+            primes: `// Find prime numbers using Sieve of Eratosthenes
+function sieve(max) {
+    var isPrime = [];
+    for (var i = 0; i <= max; i++) {
+        isPrime[i] = true;
+    }
+    isPrime[0] = isPrime[1] = false;
+
+    for (var i = 2; i * i <= max; i++) {
+        if (isPrime[i]) {
+            for (var j = i * i; j <= max; j += i) {
+                isPrime[j] = false;
+            }
+        }
+    }
+
+    var primes = [];
+    for (var i = 2; i <= max; i++) {
+        if (isPrime[i]) primes.push(i);
+    }
+    return primes;
+}
+
+var primes = sieve(100);
+"Primes up to 100: " + primes.join(", ");`,
+
+            mandelbrot: `// ASCII Mandelbrot set
+var output = "";
+var chars = " .:-=+*#%@";
+
+for (var y = -1.2; y <= 1.2; y += 0.1) {
+    var line = "";
+    for (var x = -2.0; x <= 0.6; x += 0.05) {
+        var zr = 0, zi = 0;
+        var cr = x, ci = y;
+        var iter = 0;
+
+        while (iter < 50 && zr*zr + zi*zi < 4) {
+            var temp = zr*zr - zi*zi + cr;
+            zi = 2*zr*zi + ci;
+            zr = temp;
+            iter++;
+        }
+
+        var idx = Math.floor(iter / 5);
+        if (idx >= chars.length) idx = chars.length - 1;
+        line += chars[idx];
+    }
+    output += line + "\\n";
+}
+output;`,
+
+            objects: `// Working with objects and arrays
+var person = {
+    name: "Claude",
+    type: "AI Assistant",
+    skills: ["JavaScript", "WASM", "Web Development"]
+};
+
+var items = [1, 2, 3, 4, 5];
+var doubled = [];
+for (var i = 0; i < items.length; i++) {
+    doubled.push(items[i] * 2);
+}
+
+var result = "Name: " + person.name + "\\n";
+result += "Type: " + person.type + "\\n";
+result += "Skills: " + person.skills.join(", ") + "\\n";
+result += "Doubled: " + doubled.join(", ");
+result;`,
+
+            closures: `// Closures and function scope
+function makeCounter() {
+    var count = 0;
+    return function() {
+        count += 1;
+        return count;
+    };
+}
+
+var counter1 = makeCounter();
+var counter2 = makeCounter();
+
+var results = [];
+results.push("Counter1: " + counter1());
+results.push("Counter1: " + counter1());
+results.push("Counter1: " + counter1());
+results.push("Counter2: " + counter2());
+results.push("Counter2: " + counter2());
+results.push("Counter1: " + counter1());
+
+results.join("\\n");`
+        };
+
+        // DOM elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const codeInput = document.getElementById('code-input');
+        const output = document.getElementById('output');
+        const engineStatus = document.getElementById('engine-status');
+        const runBtn = document.getElementById('run-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const execTimeEl = document.getElementById('exec-time');
+        const memSizeEl = document.getElementById('mem-size');
+
+        let engine = null;
+        let runCode = null;
+        let resetEngine = null;
+        let getVersion = null;
+        let getMemSize = null;
+
+        // Initialize the WASM module
+        async function initEngine() {
+            try {
+                const Module = await MQuickJS();
+
+                // Wrap C functions
+                runCode = Module.cwrap('mquickjs_run', 'string', ['string']);
+                resetEngine = Module.cwrap('mquickjs_reset', 'number', []);
+                getVersion = Module.cwrap('mquickjs_version', 'string', []);
+                getMemSize = Module.cwrap('mquickjs_memory_size', 'number', []);
+
+                // Initialize engine
+                const initFn = Module.cwrap('mquickjs_init', 'number', []);
+                const result = initFn();
+
+                if (result !== 0) {
+                    throw new Error('Failed to initialize engine');
+                }
+
+                // Update UI
+                const memSize = getMemSize() / (1024 * 1024);
+                memSizeEl.textContent = memSize.toFixed(0);
+
+                engineStatus.textContent = 'Ready';
+                engineStatus.className = 'status ready';
+                output.textContent = getVersion() + '\n\nClick "Run Code" to execute JavaScript.';
+
+                runBtn.disabled = false;
+                clearBtn.disabled = false;
+                resetBtn.disabled = false;
+
+                loadingOverlay.classList.add('hidden');
+
+                engine = Module;
+            } catch (err) {
+                engineStatus.textContent = 'Error';
+                engineStatus.className = 'status error';
+                output.textContent = 'Failed to load engine: ' + err.message;
+                output.className = 'has-error';
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        // Run JavaScript code
+        function executeCode() {
+            if (!runCode) return;
+
+            const code = codeInput.value;
+            if (!code.trim()) {
+                output.textContent = 'No code to execute.';
+                return;
+            }
+
+            const startTime = performance.now();
+
+            try {
+                const result = runCode(code);
+                const endTime = performance.now();
+                const execTime = (endTime - startTime).toFixed(2);
+
+                execTimeEl.textContent = execTime;
+
+                if (result.startsWith('Error:')) {
+                    output.textContent = result;
+                    output.className = 'has-error';
+                } else {
+                    output.textContent = result;
+                    output.className = 'has-result';
+                }
+            } catch (err) {
+                output.textContent = 'Execution error: ' + err.message;
+                output.className = 'has-error';
+            }
+        }
+
+        // Clear output
+        function clearOutput() {
+            output.textContent = '';
+            output.className = '';
+            execTimeEl.textContent = '-';
+        }
+
+        // Reset engine
+        function doResetEngine() {
+            if (!resetEngine) return;
+
+            const result = resetEngine();
+            if (result === 0) {
+                output.textContent = 'Engine reset successfully.\n' + getVersion();
+                output.className = 'has-result';
+            } else {
+                output.textContent = 'Failed to reset engine.';
+                output.className = 'has-error';
+            }
+        }
+
+        // Load example
+        function loadExample(name) {
+            if (examples[name]) {
+                codeInput.value = examples[name];
+            }
+        }
+
+        // Event listeners
+        runBtn.addEventListener('click', executeCode);
+        clearBtn.addEventListener('click', clearOutput);
+        resetBtn.addEventListener('click', doResetEngine);
+
+        // Keyboard shortcut: Ctrl/Cmd + Enter to run
+        codeInput.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                executeCode();
+            }
+        });
+
+        // Example buttons
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                loadExample(this.dataset.example);
+            });
+        });
+
+        // Load the engine
+        initEngine();
+    </script>
+    <script src="mquickjs.js"></script>
+</body>
+</html>

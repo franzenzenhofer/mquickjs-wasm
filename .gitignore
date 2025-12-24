@@ -1,0 +1,29 @@
+# Build artifacts
+*.o
+*.d
+*.host.o
+*.host.d
+mqjs_stdlib
+example_stdlib
+mquickjs_atom.h
+mqjs_stdlib.h
+example_stdlib.h
+test_builtin.bin
+
+# Executables
+mqjs
+example
+dtoa_test
+libm_test
+rempio2_test
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

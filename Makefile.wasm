@@ -1,0 +1,62 @@
+# MicroQuickJS WASM Build
+#
+# Created 100% by Claude Code (claude.ai/code) - December 2024
+# No human review or modification.
+#
+# Usage:
+#   make -f Makefile.wasm        # Build WASM module
+#   make -f Makefile.wasm clean  # Clean build artifacts
+
+CC = emcc
+CFLAGS = -Wall -Os -D_GNU_SOURCE -fno-math-errno -fno-trapping-math
+CFLAGS += -DCONFIG_SMALL
+
+# Emscripten-specific flags
+EMFLAGS = -s WASM=1
+EMFLAGS += -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","stringToUTF8","lengthBytesUTF8"]'
+EMFLAGS += -s EXPORTED_FUNCTIONS='["_mquickjs_init","_mquickjs_cleanup","_mquickjs_run","_mquickjs_reset","_mquickjs_version","_mquickjs_memory_size","_mquickjs_clear_output","_mquickjs_get_output","_malloc","_free"]'
+EMFLAGS += -s ALLOW_MEMORY_GROWTH=0
+EMFLAGS += -s INITIAL_MEMORY=16777216
+EMFLAGS += -s MODULARIZE=1
+EMFLAGS += -s EXPORT_NAME='MQuickJS'
+EMFLAGS += -s ENVIRONMENT='web'
+EMFLAGS += -s NO_EXIT_RUNTIME=1
+EMFLAGS += -s STRICT=1
+
+# Output directory
+DIST_DIR = dist
+
+# Source files
+WASM_SRCS = wasm_wrapper.c mquickjs.c dtoa.c libm.c cutils.c
+
+# First we need to generate the atom header
+HOST_CC = gcc
+HOST_CFLAGS = -Wall -g -MMD -D_GNU_SOURCE -fno-math-errno -fno-trapping-math -O2
+
+.PHONY: all clean setup
+
+all: setup $(DIST_DIR)/mquickjs.js
+
+setup:
+	mkdir -p $(DIST_DIR)
+
+# Generate mquickjs_atom.h using native build first
+mqjs_stdlib.host.o: mqjs_stdlib.c
+	$(HOST_CC) $(HOST_CFLAGS) -c -o $@ $<
+
+mquickjs_build.host.o: mquickjs_build.c
+	$(HOST_CC) $(HOST_CFLAGS) -c -o $@ $<
+
+mqjs_stdlib: mqjs_stdlib.host.o mquickjs_build.host.o
+	$(HOST_CC) -o $@ $^
+
+mquickjs_atom.h: mqjs_stdlib
+	./mqjs_stdlib -a > $@
+
+# Build WASM module
+$(DIST_DIR)/mquickjs.js: $(WASM_SRCS) mquickjs_atom.h
+	$(CC) $(CFLAGS) $(EMFLAGS) -o $@ $(WASM_SRCS) -lm
+
+clean:
+	rm -f *.host.o mqjs_stdlib mquickjs_atom.h
+	rm -rf $(DIST_DIR)
