@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="WASM-Powered Calculator - Safe sandboxed JavaScript execution with persistent variables and custom functions">
+    <title>WASM Calculator | MQuickJS</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-input: #0f0f1a;
+            --accent: #e94560;
+            --accent-hover: #ff6b6b;
+            --text: #eee;
+            --text-dim: #888;
+            --success: #4ecca3;
+            --warning: #ffc107;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent);
+        }
+
+        .calculator {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            gap: 8px;
+            overflow: hidden;
+        }
+
+        .display {
+            background: var(--bg-input);
+            border-radius: 12px;
+            padding: 12px;
+            flex-shrink: 0;
+        }
+
+        .display-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 24px;
+            text-align: right;
+            outline: none;
+        }
+
+        .display-result {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 36px;
+            text-align: right;
+            color: var(--success);
+            min-height: 44px;
+            word-break: break-all;
+            margin-top: 4px;
+        }
+
+        .display-result.error {
+            color: var(--accent);
+            font-size: 18px;
+        }
+
+        .wasm-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #4ecca3 0%, #45b7aa 100%);
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .wasm-badge .dot {
+            width: 6px;
+            height: 6px;
+            background: #000;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-card);
+            border: none;
+            color: var(--text-dim);
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .panels {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .panel {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        .panel.active {
+            display: flex;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            flex: 1;
+        }
+
+        .key {
+            background: var(--bg-card);
+            border: none;
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 20px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .key:active {
+            transform: scale(0.95);
+            background: #2a2a4a;
+        }
+
+        .key.op {
+            background: #2d3a5a;
+            color: var(--accent);
+        }
+
+        .key.fn {
+            background: #1e2a3a;
+            color: var(--success);
+            font-size: 14px;
+        }
+
+        .key.action {
+            background: var(--accent);
+            color: white;
+        }
+
+        .key.wide {
+            grid-column: span 2;
+        }
+
+        .var-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .var-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-card);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .var-name {
+            color: var(--success);
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .var-value {
+            color: var(--text-dim);
+            font-family: monospace;
+        }
+
+        .var-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .var-btn {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .var-btn:hover {
+            color: var(--accent);
+        }
+
+        .fn-editor {
+            background: var(--bg-input);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .fn-editor textarea {
+            width: 100%;
+            height: 100px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+        }
+
+        .fn-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .fn-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-card);
+            border: none;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .fn-btn.primary {
+            background: var(--success);
+            color: #000;
+        }
+
+        .saved-fns {
+            margin-top: 12px;
+        }
+
+        .saved-fn {
+            background: var(--bg-card);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .saved-fn:hover {
+            background: #1e2a4a;
+        }
+
+        .saved-fn-name {
+            color: var(--success);
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .saved-fn-preview {
+            color: var(--text-dim);
+            font-size: 12px;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .history-item {
+            background: var(--bg-card);
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            background: #1e2a4a;
+        }
+
+        .history-expr {
+            color: var(--text-dim);
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .history-result {
+            color: var(--success);
+            font-family: monospace;
+            font-size: 16px;
+            margin-top: 2px;
+        }
+
+        .info-section {
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .info-section h3 {
+            color: var(--accent);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .info-section p {
+            color: var(--text-dim);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .info-section code {
+            background: var(--bg-input);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--success);
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 8px;
+        }
+
+        .feature-list li {
+            padding: 6px 0;
+            color: var(--text-dim);
+            font-size: 13px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .feature-list li::before {
+            content: "OK";
+            color: var(--success);
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border-top: 1px solid #333;
+            font-size: 11px;
+            color: var(--text-dim);
+            flex-shrink: 0;
+        }
+
+        .status-bar a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-dim);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--bg-card);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (min-width: 600px) {
+            .calculator {
+                max-width: 500px;
+                margin: 0 auto;
+                padding: 16px;
+            }
+
+            .display-input {
+                font-size: 28px;
+            }
+
+            .display-result {
+                font-size: 42px;
+            }
+
+            .key {
+                min-height: 64px;
+                font-size: 22px;
+            }
+        }
+
+        @media (min-width: 900px) {
+            .calculator {
+                max-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="index.html" class="logo"><span>WASM</span>Calc</a>
+        <nav class="nav-links">
+            <a href="index.html">IDE</a>
+            <a href="demo.html">Demo</a>
+            <a href="benchmark.html">Benchmark</a>
+        </nav>
+    </header>
+
+    <div id="app" class="loading">
+        <div class="spinner"></div>
+        <div>Loading WASM Engine...</div>
+    </div>
+
+    <div id="calculator" class="calculator" style="display: none;">
+        <div class="display">
+            <input type="text" class="display-input" id="input" placeholder="0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <div class="display-result" id="result">0</div>
+            <div class="wasm-badge">
+                <span class="dot"></span>
+                <span>Sandboxed WASM Engine</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="keypad">Keypad</button>
+            <button class="tab" data-tab="vars">Variables</button>
+            <button class="tab" data-tab="funcs">Functions</button>
+            <button class="tab" data-tab="history">History</button>
+            <button class="tab" data-tab="info">Why WASM?</button>
+        </div>
+
+        <div class="panels">
+            <div class="panel active" id="panel-keypad">
+                <div class="keypad">
+                    <button class="key fn" data-fn="sin(">sin</button>
+                    <button class="key fn" data-fn="cos(">cos</button>
+                    <button class="key fn" data-fn="tan(">tan</button>
+                    <button class="key op" data-op="/">÷</button>
+
+                    <button class="key fn" data-fn="Math.sqrt(">√</button>
+                    <button class="key fn" data-fn="Math.pow(">x^y</button>
+                    <button class="key fn" data-fn="Math.log(">ln</button>
+                    <button class="key op" data-op="*">×</button>
+
+                    <button class="key" data-num="7">7</button>
+                    <button class="key" data-num="8">8</button>
+                    <button class="key" data-num="9">9</button>
+                    <button class="key op" data-op="-">−</button>
+
+                    <button class="key" data-num="4">4</button>
+                    <button class="key" data-num="5">5</button>
+                    <button class="key" data-num="6">6</button>
+                    <button class="key op" data-op="+">+</button>
+
+                    <button class="key" data-num="1">1</button>
+                    <button class="key" data-num="2">2</button>
+                    <button class="key" data-num="3">3</button>
+                    <button class="key action" id="btn-equals">=</button>
+
+                    <button class="key" data-num="0" style="grid-column: span 2;">0</button>
+                    <button class="key" data-num=".">.</button>
+                    <button class="key op" id="btn-clear">C</button>
+                </div>
+            </div>
+
+            <div class="panel" id="panel-vars">
+                <div class="info-section">
+                    <h3>Persistent Variables</h3>
+                    <p>Variables you define persist in the WASM engine. Try: <code>x = 42</code> or <code>total = x + 10</code></p>
+                </div>
+                <div class="var-list" id="var-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <p>No variables yet.<br>Define one like <code>x = 10</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" id="panel-funcs">
+                <div class="fn-editor">
+                    <textarea id="fn-code" placeholder="// Define custom functions that persist!
+// Example:
+function double(n) {
+    return n * 2;
+}
+
+function factorial(n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}"></textarea>
+                    <div class="fn-buttons">
+                        <button class="fn-btn primary" id="btn-save-fn">Save & Load Functions</button>
+                        <button class="fn-btn" id="btn-clear-fn">Clear</button>
+                    </div>
+                </div>
+                <div class="saved-fns" id="saved-fns">
+                    <div class="info-section">
+                        <h3>Why Custom Functions?</h3>
+                        <p>Your functions run inside the sandboxed WASM engine - safe, isolated, and persistent. They are saved to localStorage and reloaded automatically.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" id="panel-history">
+                <div class="history-list" id="history-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📜</div>
+                        <p>No calculations yet.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" id="panel-info">
+                <div class="info-section">
+                    <h3>Why WASM for a Calculator?</h3>
+                    <p>This calculator runs MicroQuickJS compiled to WebAssembly. Your code executes in a completely isolated sandbox - it cannot access the DOM, cookies, network, or any browser APIs.</p>
+                </div>
+
+                <div class="info-section">
+                    <h3>Security Benefits</h3>
+                    <ul class="feature-list">
+                        <li>Code runs in isolated WASM memory space</li>
+                        <li>No access to <code>document</code>, <code>window</code>, or <code>fetch</code></li>
+                        <li>Safe to run untrusted calculations</li>
+                        <li>No browser code execution security risks</li>
+                    </ul>
+                </div>
+
+                <div class="info-section">
+                    <h3>Unique Features</h3>
+                    <ul class="feature-list">
+                        <li>Persistent engine state across calculations</li>
+                        <li>Define variables that survive between runs</li>
+                        <li>Create custom functions stored in localStorage</li>
+                        <li>Full JavaScript syntax (ES5+) support</li>
+                        <li>Only 168KB WASM binary</li>
+                    </ul>
+                </div>
+
+                <div class="info-section">
+                    <h3>Try These</h3>
+                    <p>
+                        <code>x = 100</code> - Define variable<br>
+                        <code>x * 2</code> - Use variable<br>
+                        <code>Math.PI * x</code> - Built-in math<br>
+                        <code>fib(20)</code> - Custom function
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="status-bar">
+        <span id="status">Loading...</span>
+        <a href="https://github.com/franzenzenhofer/mquickjs-wasm">GitHub</a>
+    </footer>
+
+    <script src="mquickjs.js"></script>
+    <script src="calculator.js"></script>
+</body>
+</html>
